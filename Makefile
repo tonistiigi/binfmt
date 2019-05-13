@@ -8,7 +8,7 @@ build: bin/linuxkit
 	bin/linuxkit pkg build -org docker binfmt
 
 push: bin/linuxkit
-	bin/linuxkit pkg push -org docker binfmt
+	bin/linuxkit pkg push -disable-content-trust -org docker binfmt
 
 clean:
 	rm -f bin/*
