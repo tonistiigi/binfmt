@@ -25,7 +25,7 @@ Builds a docker/binfmt image - note the image ID.
 
 This registers the new QEMU binaries in the host kernel. Test all different architectures
 
-    docker run --rm aarch64/alpine uname -a
+    docker run --rm arm64v8/alpine uname -a
     docker run --rm arm32v7/alpine uname -a
     docker run --rm ppc64le/alpine uname -a
     docker run --rm s390x/alpine uname -a
