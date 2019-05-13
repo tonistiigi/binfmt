@@ -1,0 +1,10 @@
+image: binfmt
+network: true
+arches:
+  - amd64
+config:
+  capabilities:
+    - CAP_SYS_ADMIN
+  readonly: true
+  net: new
+  ipc: new
