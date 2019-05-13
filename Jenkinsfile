@@ -22,7 +22,7 @@ pipeline {
         expression { params.push }
       }
       steps {
-        withDockerRegistry([credentialsId: 'fb721cc7-c508-4691-b6a4-403337e42ecc', url: "https://index.docker.io/v1/"]) {
+        withDockerRegistry(url: "https://index.docker.io/v1/", credentialsId: 'dockerbuildbot-index.docker.io') {
           sh 'make push'
         }
       }
