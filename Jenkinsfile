@@ -16,6 +16,11 @@ pipeline {
         sh 'make build'
       }
     }
+    stage('test') {
+      steps {
+        sh 'make test'
+      }
+    }
     stage('push') {
       when {
         beforeAgent true
