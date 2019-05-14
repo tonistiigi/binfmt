@@ -1,6 +1,6 @@
 pipeline {
   agent {
-      label 'linux && amd64 && docker'
+      label 'linux && amd64 && ubuntu-1804 && docker'
   }
   parameters {
     booleanParam(name: "push", defaultValue: false)
