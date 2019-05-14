@@ -9,7 +9,7 @@ RUN apt-get update && \
         pkg-config \
         python
 
-RUN git clone -b moby/v3.1.0 https://github.com/moby/qemu && \
+RUN git clone -b moby/v4.0.0 https://github.com/moby/qemu && \
   	cd qemu && scripts/git-submodule.sh update \
     		ui/keycodemapdb \
     		tests/fp/berkeley-testfloat-3 \
@@ -48,13 +48,6 @@ RUN ./configure \
         --target-list="aarch64-linux-user arm-linux-user ppc64le-linux-user s390x-linux-user"
 
 RUN make -j "$(getconf _NPROCESSORS_ONLN)"
-
-RUN mkdir /binaries && \
-    cp aarch64-linux-user/qemu-aarch64 /binaries && \
-    cp arm-linux-user/qemu-arm /binaries && \
-    cp ppc64le-linux-user/qemu-ppc64le /binaries && \
-    cp s390x-linux-user/qemu-s390x /binaries
-
 RUN make install
 
 FROM linuxkit/alpine:518c2ed0f398c5508969ac5e033607201fb419ed AS mirror
