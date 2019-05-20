@@ -1,3 +1,17 @@
+NOTARY_CREDS = [
+    $class: 'FileBinding',
+    variable: 'CONTENT_TRUST_KEY',
+    credentialsId: 'orca-signing-key.pem',
+]
+
+DOCKER_HUB_CREDS = [
+    $class: 'UsernamePasswordMultiBinding',
+    usernameVariable: 'REGISTRY_USERNAME',
+    passwordVariable: 'DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE',
+    credentialsId: 'orcaeng-hub.docker.com',
+]
+
+
 pipeline {
   agent {
       label 'linux && amd64 && ubuntu-1804 && docker'
@@ -22,14 +36,16 @@ pipeline {
         sh 'make test'
       }
     }
-    stage('push') {
+    stage('push-signed') {
       when {
-        beforeAgent true
         expression { params.push }
       }
       steps {
         withDockerRegistry(url: "https://index.docker.io/v1/", credentialsId: 'dockerbuildbot-index.docker.io') {
-          sh 'make push-unsigned'
+          withCredentials([DOCKER_HUB_CREDS, NOTARY_CREDS]) {
+            sh 'docker trust key load $CONTENT_TRUST_KEY'
+            sh 'make push-signed'
+          }
         }
       }
     }
