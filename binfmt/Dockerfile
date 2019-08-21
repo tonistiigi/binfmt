@@ -1,5 +1,5 @@
-FROM debian@sha256:75f7d0590b45561bfa443abad0b3e0f86e2811b1fc176f786cd30eb078d1846f AS qemu
-ARG VERSION=v4.0.0
+FROM debian@sha256:2f04d3d33b6027bb74ecc81397abe780649ec89f1a2af18d7022737d0482cefe AS qemu
+ARG VERSION=v4.1.0
 RUN apt-get update && \
     apt-get install -y \
         build-essential \
@@ -52,7 +52,7 @@ RUN ./configure \
 RUN make -j "$(getconf _NPROCESSORS_ONLN)"
 RUN make install
 
-FROM linuxkit/alpine:518c2ed0f398c5508969ac5e033607201fb419ed AS mirror
+FROM linuxkit/alpine:27df8a8be139cd19cd7348c21efca8843b424f2b AS mirror
 
 RUN apk add --no-cache go musl-dev
 ENV GOPATH=/go PATH=$PATH:/go/bin
