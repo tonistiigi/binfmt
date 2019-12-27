@@ -47,7 +47,7 @@ RUN ./configure \
         --disable-spice \
         --disable-tools \
         --disable-vte \
-        --target-list="aarch64-linux-user arm-linux-user ppc64le-linux-user s390x-linux-user"
+        --target-list="aarch64-linux-user arm-linux-user ppc64le-linux-user s390x-linux-user riscv64-linux-user"
 
 RUN make -j "$(getconf _NPROCESSORS_ONLN)"
 RUN make install
