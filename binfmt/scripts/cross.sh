@@ -8,6 +8,7 @@
 : ${OUT_ARCH=}
 : ${DPKG_ARCH=}
 : ${PKG_PREFIX=}
+: ${CROSS_PREFIX=}
 
 if [ -n "$TARGETPLATFORM" ]; then
   os="$(echo $TARGETPLATFORM | cut -d"/" -f1)"
@@ -71,6 +72,10 @@ case "$TARGETARCH" in
   OUT_ARCH="$(uname -m)"
   DPKG_ARCH="$(dpkg --print-architecture)"
 esac
+
+if [ -n "$CROSS_PREFIX" ]; then
+  PKG_PREFIX="$CROSS_PREFIX"
+fi
 
 case "$1" in
 "is_cross")
