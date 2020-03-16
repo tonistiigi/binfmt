@@ -36,7 +36,7 @@ case "$TARGETARCH" in
 "amd64")
   OUT_ARCH="x86_64"
   DPKG_ARCH="amd64"
-  PKG_PREFIX="x86-64-linux-gnu"
+  PKG_PREFIX="x86_64-linux-gnu"
   ;;
 "arm64")
   OUT_ARCH="aarch64"
