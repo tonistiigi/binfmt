@@ -22,7 +22,7 @@ fi
 if [ "$arch" != "ppc64le" ]; then
     QEMU_TARGETS="$QEMU_TARGETS ppc64le-linux-user"
 fi
-if [ "$arch" != "s390x" ]; then
+if [ "$arch" != "s390x" && "$TARGETPLATFORM" != "linux/riscv64" ]; then
     QEMU_TARGETS="$QEMU_TARGETS s390x-linux-user"
 fi
 
@@ -38,7 +38,6 @@ set -x
   --disable-system \
   --static \
   --disable-blobs \
-  --disable-bluez \
   --disable-brlapi \
   --disable-cap-ng \
   --disable-capstone \

@@ -5,8 +5,9 @@ FROM --platform=$BUILDPLATFORM debian:buster AS src
 RUN apt-get update && apt-get install -y git
 ARG VERSION
 WORKDIR /src
-RUN git clone -b moby/$VERSION https://github.com/moby/qemu && \
-  cd qemu && scripts/git-submodule.sh update \
+RUN git clone https://github.com/tiborvass/qemu && \
+  cd qemu && git checkout user-execve-wrap-qemu && \
+  scripts/git-submodule.sh update \
   ui/keycodemapdb \
   tests/fp/berkeley-testfloat-3 \
   tests/fp/berkeley-softfloat-3 \
@@ -42,7 +43,7 @@ RUN for f in $(dpkg-query -L zlib1g-dev libglib2.0-dev libpcre3-dev libglib2.0-0
 RUN mkdir -p /out && tar cvf /out/libglibc.tar -T /tmp/list
 
 FROM tonistiigi/xx:riscv-toolchain AS base-riscv64
-RUN apt-get update && apt-get install -y python dpkg-dev pkg-config
+RUN apt-get update && apt-get install -y python3 dpkg-dev pkg-config
 ENV PATH=/qemu/install-scripts:$PATH
 WORKDIR /qemu
 
@@ -62,7 +63,7 @@ ARG VERSION
 
 RUN --mount=target=.,from=src,src=/src/qemu,rw --mount=target=./install-scripts,src=scripts \
   TARGETPLATFORM=${TARGETPLATFORM} configure_qemu.sh && make -j "$(getconf _NPROCESSORS_ONLN)" && make install
-
+RUN cd /usr/bin && for f in $(ls qemu-*); do ln -s $f buildkit-$f; done
 FROM --platform=$BUILDPLATFORM tonistiigi/xx:golang@sha256:6f7d999551dd471b58f70716754290495690efa8421e0a1fcf18eb11d0c0a537 AS xgo
 
 FROM --platform=$BUILDPLATFORM golang:1.14-alpine AS mirror
@@ -76,8 +77,8 @@ RUN TARGETPLATFORM=$TARGETPLATFORM go build -o /go/bin/binfmt /go/src/binfmt
 
 
 FROM scratch AS binaries
-COPY --from=build usr/bin/qemu-* /
-COPY --from=mirror /go/bin/binfmt binfmt
+COPY --from=build usr/bin/buildkit-qemu-* /
+#COPY --from=mirror /go/bin/binfmt binfmt
 
 # COPY etc/binfmt.d/00_linuxkit.conf etc/binfmt.d/00_linuxkit.conf
 # CMD ["/usr/bin/binfmt"]
