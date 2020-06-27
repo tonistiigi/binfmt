@@ -21,7 +21,7 @@ FROM --platform=$BUILDPLATFORM debian:buster AS qemu
 RUN apt-get update && \
   apt-get install -y \
   pkg-config \
-  python \
+  python3 \
   dpkg-dev
 
 WORKDIR /qemu
@@ -46,7 +46,7 @@ RUN for f in $(dpkg-query -L zlib1g-dev libglib2.0-dev libpcre3-dev libglib2.0-0
 RUN mkdir -p /out && tar cvf /out/libglibc.tar -T /tmp/list
 
 FROM tonistiigi/xx:riscv-toolchain AS base-riscv64
-RUN apt-get update && apt-get install -y python dpkg-dev pkg-config
+RUN apt-get update && apt-get install -y python3 dpkg-dev pkg-config
 ENV PATH=/qemu/install-scripts:$PATH
 WORKDIR /qemu
 
