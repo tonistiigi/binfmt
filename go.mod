@@ -1,4 +1,4 @@
-module github.com/tonistiigi/binfmt/binfmt
+module github.com/tonistiigi/binfmt
 
 go 1.14
 
