@@ -1,11 +1,23 @@
 name: ci
 
-on: [push]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+      - uses: azure/docker-login@v1
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+        with:
+          login-server: https://index.docker.io/v1/
+          username: ${{ secrets.DOCKERIO_USERNAME }}
+          password: ${{ secrets.DOCKERIO_PASSWORD }}
       -
         name: Setup
         run: |
@@ -18,3 +30,8 @@ jobs:
         name: Validate all
         run: |
           ./hack/ci
+      -
+        name: Publish master
+        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+        run: |
+          NAME_SUFFIX=master docker buildx bake --push --progress=plain mainline-all buildkit-helper-all

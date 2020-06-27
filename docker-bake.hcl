@@ -31,7 +31,7 @@ target "mainline" {
   }
   tags = [suffix-tag("${REPO}", "latest", "${NAME_SUFFIX}")]
   cache-to = ["type=inline"]
-  cache-from = [suffix-tag("${REPO}", "latest", "${NAME_SUFFIX}")]
+  cache-from = ["${REPO}:master"]
 }
 
 target "mainline-all" {
@@ -45,8 +45,7 @@ target "buildkit-helper" {
   }
   tags = [suffix-tag("${REPO}", "buildkit", "${NAME_SUFFIX}")]
   cache-to = ["type=inline"]
-  cache-from = [suffix-tag("${REPO}", "buildkit", "${NAME_SUFFIX}")]
-  
+  cache-from = ["${REPO}:buildkit-master"]
 }
 
 target "buildkit-helper-all" {
