@@ -1,12 +1,16 @@
 # syntax=docker/dockerfile:1.1-experimental
-ARG VERSION=v4.1.0
+ARG QEMU_VERSION=moby/v4.1.0
+ARG QEMU_REPO=https://github.com/moby/qemu
 
 FROM --platform=$BUILDPLATFORM debian:buster AS src
 RUN apt-get update && apt-get install -y git
-ARG VERSION
+ARG QEMU_VERSION
+ARG QEMU_REPO
 WORKDIR /src
-RUN git clone -b moby/$VERSION https://github.com/moby/qemu && \
-  cd qemu && scripts/git-submodule.sh update \
+RUN git clone $QEMU_REPO && \
+  cd qemu && \
+  git checkout $QEMU_VERSION && \
+  scripts/git-submodule.sh update \
   ui/keycodemapdb \
   tests/fp/berkeley-testfloat-3 \
   tests/fp/berkeley-softfloat-3 \
@@ -59,25 +63,30 @@ FROM base-$TARGETARCH$TARGETVARIANT AS base
 FROM base AS build
 ARG TARGETPLATFORM
 ARG VERSION
-
 RUN --mount=target=.,from=src,src=/src/qemu,rw --mount=target=./install-scripts,src=scripts \
-  TARGETPLATFORM=${TARGETPLATFORM} configure_qemu.sh && make -j "$(getconf _NPROCESSORS_ONLN)" && make install
+  TARGETPLATFORM=${TARGETPLATFORM} configure_qemu.sh && \
+  make -j "$(getconf _NPROCESSORS_ONLN)" && \
+  make install
+
+ARG BINARY_PREFIX
+RUN cd /usr/bin; [ -z "$BINARY_PREFIX" ] || for f in $(ls qemu-*); do ln -s $f $BINARY_PREFIX$f; done
 
 FROM --platform=$BUILDPLATFORM tonistiigi/xx:golang@sha256:6f7d999551dd471b58f70716754290495690efa8421e0a1fcf18eb11d0c0a537 AS xgo
 
-FROM --platform=$BUILDPLATFORM golang:1.14-alpine AS mirror
+FROM --platform=$BUILDPLATFORM golang:1.14-alpine AS binfmt
 COPY --from=xgo / /
 ENV CGO_ENABLED=0
-ENV GOPATH=/go PATH=$PATH:/go/bin
-
-COPY main.go /go/src/binfmt/
 ARG TARGETPLATFORM
-RUN TARGETPLATFORM=$TARGETPLATFORM go build -o /go/bin/binfmt /go/src/binfmt
+WORKDIR /src
+RUN --mount=target=. \
+  TARGETPLATFORM=$TARGETPLATFORM go build -o /go/bin/binfmt .
 
 
 FROM scratch AS binaries
-COPY --from=build usr/bin/qemu-* /
-COPY --from=mirror /go/bin/binfmt binfmt
+COPY --from=build usr/bin/${BINARY_PREFIX}qemu-* /
 
-# COPY etc/binfmt.d/00_linuxkit.conf etc/binfmt.d/00_linuxkit.conf
-# CMD ["/usr/bin/binfmt"]
+FROM scratch
+COPY --from=binaries / /usr/bin/
+COPY --from=binfmt /go/bin/binfmt /usr/bin/binfmt
+ENTRYPOINT [ "/usr/bin/binfmt" ]
+VOLUME /tmp

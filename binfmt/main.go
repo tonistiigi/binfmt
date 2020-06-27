@@ -1,102 +1,178 @@
 package main
 
 import (
-	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
+
+	"github.com/containerd/containerd/platforms"
+	"github.com/moby/buildkit/util/binfmt_misc"
+	"github.com/pkg/errors"
 )
 
 var (
-	dir   string
-	mount string
+	mount       string
+	toInstall   string
+	toUninstall string
 )
 
 func init() {
-	flag.StringVar(&dir, "dir", "/etc/binfmt.d", "directory with config files")
 	flag.StringVar(&mount, "mount", "/proc/sys/fs/binfmt_misc", "binfmt_misc mount point")
+	flag.StringVar(&toInstall, "install", "", "architectures to install")
+	flag.StringVar(&toUninstall, "uninstall", "", "architectures to uninstall")
 }
 
-func binfmt(line []byte) error {
+func uninstall(arch string) error {
+	fis, err := ioutil.ReadDir(mount)
+	if err != nil {
+		return err
+	}
+	for _, fi := range fis {
+		if fi.Name() == arch || strings.HasSuffix(fi.Name(), "-"+arch) {
+			return ioutil.WriteFile(filepath.Join(mount, fi.Name()), []byte("-1"), 0600)
+		}
+	}
+	return errors.Errorf("not found")
+}
+
+func install(arch string) error {
+	cfg, ok := configs[arch]
+	if !ok {
+		return errors.Errorf("unsupported architecture: %v", arch)
+	}
 	register := filepath.Join(mount, "register")
 	file, err := os.OpenFile(register, os.O_WRONLY, 0)
 	if err != nil {
 		e, ok := err.(*os.PathError)
 		if ok && e.Err == syscall.ENOENT {
-			return fmt.Errorf("ENOENT opening %s is it mounted?", register)
+			return errors.Errorf("ENOENT opening %s is it mounted?", register)
 		}
 		if ok && e.Err == syscall.EPERM {
-			return fmt.Errorf("EPERM opening %s check permissions?", register)
+			return errors.Errorf("EPERM opening %s check permissions?", register)
 		}
-		return fmt.Errorf("Cannot open %s: %s", register, err)
+		return errors.Errorf("Cannot open %s: %s", register, err)
 	}
 	defer file.Close()
+
+	binaryPath := "/usr/bin"
+	if v := os.Getenv("QEMU_BINARY_PATH"); v != "" {
+		binaryPath = v
+	}
+	flags := "CF"
+	if v := os.Getenv("QEMU_PRESERVE_PARENT"); v != "" {
+		flags += "P"
+	}
+
+	line := fmt.Sprintf(":%s:M:0:%s:%s:%s:%s", cfg.binary, cfg.magic, cfg.mask, filepath.Join(binaryPath, cfg.binary), flags)
+
 	// short writes should not occur on sysfs, cannot usefully recover
-	_, err = file.Write(line)
+	_, err = file.Write([]byte(line))
 	if err != nil {
 		e, ok := err.(*os.PathError)
 		if ok && e.Err == syscall.EEXIST {
-			// clear existing entry
-			split := bytes.SplitN(line[1:], []byte(":"), 2)
-			if len(split) == 0 {
-				return fmt.Errorf("Cannot determine arch from: %s", line)
-			}
-			arch := filepath.Join(mount, string(split[0]))
-			clear, err := os.OpenFile(arch, os.O_WRONLY, 0)
-			if err != nil {
-				return fmt.Errorf("Cannot open %s: %s", arch, err)
-			}
-			defer clear.Close()
-			_, err = clear.Write([]byte("-1"))
-			if err != nil {
-				return fmt.Errorf("Cannot write to %s: %s", arch, err)
-			}
-			_, err = file.Write(line)
-			if err != nil {
-				return fmt.Errorf("Cannot write to %s: %s", register, err)
-			}
-			return nil
+			return errors.Errorf("%s already registered", cfg.binary)
 		}
-		return fmt.Errorf("Cannot write to %s: %s", register, err)
+		return errors.Errorf("cannot write to %s: %s", register, err)
 	}
 	return nil
+}
+
+func printStatus() error {
+	fis, err := ioutil.ReadDir(mount)
+	if err != nil {
+		return err
+	}
+	var emulators []string
+	for _, f := range fis {
+		if f.Name() == "register" || f.Name() == "status" {
+			continue
+		}
+		dt, err := ioutil.ReadFile(filepath.Join(mount, f.Name()))
+		if err != nil {
+			return err
+		}
+		if strings.HasPrefix(string(dt), "enabled") {
+			emulators = append(emulators, f.Name())
+		}
+	}
+
+	out := struct {
+		Supported []string `json:"supported"`
+		Emulators []string `json:"emulators"`
+	}{
+		Supported: binfmt_misc.SupportedPlatforms(false),
+		Emulators: emulators,
+	}
+
+	dt, err := json.MarshalIndent(out, "", "  ")
+	if err != nil {
+		return nil
+	}
+	fmt.Printf("%s\n", dt)
+	return nil
+}
+
+func parseArch(in string) (out []string) {
+	if in == "" {
+		return
+	}
+	for _, v := range strings.Split(in, ",") {
+		p, err := platforms.Parse(v)
+		if err != nil {
+			out = append(out, v)
+		} else {
+			out = append(out, p.Architecture)
+		}
+	}
+	return
 }
 
 func main() {
 	flag.Parse()
 
-	if err := syscall.Mount("binfmt_misc", mount, "binfmt_misc", 0, ""); err != nil {
-		log.Fatalf("Cannot mount binfmt_misc filesystem at %s: %v", mount, err)
+	if err := run(); err != nil {
+		log.Printf("error: %+v", err)
 	}
-	defer syscall.Unmount(mount, 0)
-
-	files, err := ioutil.ReadDir(dir)
-	if err != nil {
-		log.Fatalf("Cannot read directory %s: %s", dir, err)
-	}
-
-	for _, file := range files {
-		contents, err := ioutil.ReadFile(filepath.Join(dir, file.Name()))
-		if err != nil {
-			log.Fatalf("Cannot read file %s: %s", file.Name(), err)
+}
+func run() error {
+	if _, err := os.Stat(filepath.Join(mount, "status")); err != nil {
+		if err := syscall.Mount("binfmt_misc", mount, "binfmt_misc", 0, ""); err != nil {
+			return errors.Wrapf(err, "cannot mount binfmt_misc filesystem at %s", mount)
 		}
-		lines := bytes.Split(contents, []byte("\n"))
-		for _, line := range lines {
-			if len(line) == 0 {
-				continue
-			}
-			// ignore comments
-			if line[0] == '#' {
-				continue
-			}
-			err = binfmt(line)
-			if err != nil {
-				log.Fatal(err)
-			}
+		defer syscall.Unmount(mount, 0)
+	}
+
+	for _, name := range parseArch(toUninstall) {
+		err := uninstall(name)
+		if err == nil {
+			log.Printf("uninstalling: %s OK", name)
+		} else {
+			log.Printf("uninstalling: %s %v", name, err)
 		}
 	}
+
+	var installArchs []string
+	if toInstall == "all" {
+		installArchs = allArch()
+	} else {
+		installArchs = parseArch(toInstall)
+	}
+
+	for _, name := range installArchs {
+		err := install(name)
+		if err == nil {
+			log.Printf("installing: %s OK", name)
+		} else {
+			log.Printf("installing: %s %v", name, err)
+		}
+	}
+
+	printStatus()
+	return nil
 }
