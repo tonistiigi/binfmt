@@ -106,7 +106,7 @@ func printStatus() error {
 		Supported []string `json:"supported"`
 		Emulators []string `json:"emulators"`
 	}{
-		Supported: binfmt_misc.SupportedPlatforms(false),
+		Supported: binfmt_misc.SupportedPlatforms(true),
 		Emulators: emulators,
 	}
 
@@ -149,6 +149,9 @@ func run() error {
 	}
 
 	for _, name := range parseArch(toUninstall) {
+		if name == "arm64" {
+			name = "aarch64"
+		}
 		err := uninstall(name)
 		if err == nil {
 			log.Printf("uninstalling: %s OK", name)

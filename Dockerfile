@@ -78,8 +78,8 @@ COPY --from=xgo / /
 ENV CGO_ENABLED=0
 ARG TARGETPLATFORM
 WORKDIR /src
-RUN --mount=target=.,src=cmd/binfmt \
-  TARGETPLATFORM=$TARGETPLATFORM go build -o /go/bin/binfmt .
+RUN --mount=target=. \
+  TARGETPLATFORM=$TARGETPLATFORM go build -o /go/bin/binfmt ./cmd/binfmt
 
 
 FROM scratch AS binaries

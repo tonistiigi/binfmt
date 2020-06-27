@@ -48,7 +48,7 @@ var configs = map[string]config{
 
 func allArch() []string {
 	m := map[string]struct{}{}
-	for _, pp := range binfmt_misc.SupportedPlatforms(false) {
+	for _, pp := range binfmt_misc.SupportedPlatforms(true) {
 		p, err := platforms.Parse(pp)
 		if err == nil {
 			m[p.Architecture] = struct{}{}

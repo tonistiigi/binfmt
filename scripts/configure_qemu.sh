@@ -38,7 +38,6 @@ set -x
   --disable-system \
   --static \
   --disable-blobs \
-  --disable-bluez \
   --disable-brlapi \
   --disable-cap-ng \
   --disable-capstone \
