@@ -1,0 +1,20 @@
+name: ci
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Setup
+        run: |
+          docker buildx create --use
+          docker buildx inspect --bootstrap
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Validate all
+        run: |
+          ./hack/ci
