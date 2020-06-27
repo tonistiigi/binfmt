@@ -8,7 +8,7 @@ RUN --mount=target=/src,rw \
   mkdir /out && cp -r go.mod go.sum vendor /out
 
 FROM scratch AS update
-COPY --from=vendored /out /out
+COPY --from=vendored /out /
 
 FROM vendored AS validate
 RUN --mount=target=.,rw \
