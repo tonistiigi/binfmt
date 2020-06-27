@@ -1,0 +1,38 @@
+# github.com/containerd/containerd v1.4.0-0 => github.com/containerd/containerd v1.3.1-0.20200227195959-4d242818bf55
+## explicit
+github.com/containerd/containerd/errdefs
+github.com/containerd/containerd/log
+github.com/containerd/containerd/platforms
+# github.com/golang/protobuf v1.3.3
+github.com/golang/protobuf/proto
+github.com/golang/protobuf/ptypes
+github.com/golang/protobuf/ptypes/any
+github.com/golang/protobuf/ptypes/duration
+github.com/golang/protobuf/ptypes/timestamp
+# github.com/konsorten/go-windows-terminal-sequences v1.0.2
+github.com/konsorten/go-windows-terminal-sequences
+# github.com/moby/buildkit v0.6.2-0.20200303093749-09900f32dcaa
+## explicit
+github.com/moby/buildkit/util/binfmt_misc
+# github.com/opencontainers/go-digest v1.0.0-rc1
+github.com/opencontainers/go-digest
+# github.com/opencontainers/image-spec v1.0.1
+github.com/opencontainers/image-spec/specs-go
+github.com/opencontainers/image-spec/specs-go/v1
+# github.com/pkg/errors v0.9.1
+## explicit
+github.com/pkg/errors
+# github.com/sirupsen/logrus v1.4.2
+github.com/sirupsen/logrus
+# golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae
+golang.org/x/sys/unix
+# google.golang.org/genproto v0.0.0-20200227132054-3f1135a288c9
+google.golang.org/genproto/googleapis/rpc/status
+# google.golang.org/grpc v1.27.1
+google.golang.org/grpc/codes
+google.golang.org/grpc/connectivity
+google.golang.org/grpc/grpclog
+google.golang.org/grpc/internal
+google.golang.org/grpc/status
+# github.com/containerd/containerd => github.com/containerd/containerd v1.3.1-0.20200227195959-4d242818bf55
+# github.com/docker/docker => github.com/docker/docker v1.4.2-0.20200227233006-38f52c9fec82
