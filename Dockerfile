@@ -78,7 +78,7 @@ COPY --from=xgo / /
 ENV CGO_ENABLED=0
 ARG TARGETPLATFORM
 WORKDIR /src
-RUN --mount=target=. \
+RUN --mount=target=.,src=cmd/binfmt \
   TARGETPLATFORM=$TARGETPLATFORM go build -o /go/bin/binfmt .
 
 
