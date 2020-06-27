@@ -41,7 +41,7 @@ target "mainline-all" {
 target "buildkit-helper" {
   args = {
     QEMU_REPO = "https://github.com/tiborvass/qemu"
-    QEMU_VERSION = "5fa4142b6f00b8e3bd41033e79a0e40fc1407fc2"
+    QEMU_VERSION = "878126af123e293a0b4fe59dd697e28c86244336"
   }
   tags = [suffix-tag("${REPO}", "buildkit", "${NAME_SUFFIX}")]
   cache-to = ["type=inline"]
