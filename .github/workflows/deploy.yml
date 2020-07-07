@@ -7,7 +7,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: azure/docker-login@v1
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
         with:
           login-server: https://index.docker.io/v1/
           username: ${{ secrets.DOCKERIO_USERNAME }}
@@ -16,17 +15,20 @@ jobs:
         run: |
           docker buildx create --use
           docker buildx inspect --bootstrap
+      - name: Checkout
+        uses: actions/checkout@v2
       - name: Deployment info
         id: info
         run: |
           echo "::set-output name=deployment_id::$(cat $GITHUB_EVENT_PATH | jq .deployment.id)"
-          echo "::set-output name=deployment_target::$(cat $GITHUB_EVENT_PATH | jq .deployment.payload.target)"
+          echo "::set-output name=deployment_target::$(cat $GITHUB_EVENT_PATH | jq -r .deployment.payload.target)"
       - name: Build and push
         env:
           DEPLOYMENT_TARGET: "${{ steps.info.outputs.deployment_target }}"
         if: ${{ success() }}
         id: build
         run: |
+          docker run --rm --privileged tonistiigi/binfmt --install=all
           [ -n "$DEPLOYMENT_TARGET" ] || exit 1
           docker buildx bake --push --progress=plain $DEPLOYMENT_TARGET
       - name: Update deployment status (success)
@@ -37,7 +39,6 @@ jobs:
           state: "success"
           deployment_id: ${{ steps.info.outputs.deployment_id }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          description: "aaaa-bbb"
 
       - name: Update deployment status (failure)
         if: failure()
