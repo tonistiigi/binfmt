@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.1-experimental
-ARG QEMU_VERSION=moby/v4.1.0
-ARG QEMU_REPO=https://github.com/moby/qemu
+ARG QEMU_VERSION=v5.0.0
+ARG QEMU_REPO=https://github.com/qemu/qemu
 
 FROM --platform=$BUILDPLATFORM debian:buster AS src
 RUN apt-get update && apt-get install -y git
