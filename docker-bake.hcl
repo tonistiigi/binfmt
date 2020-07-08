@@ -42,10 +42,12 @@ target "buildkit-helper" {
   args = {
     QEMU_REPO = "https://github.com/tiborvass/qemu"
     QEMU_VERSION = "878126af123e293a0b4fe59dd697e28c86244336"
+    BINARY_PREFIX = "buildkit-"
   }
   tags = [suffix-tag("${REPO}", "buildkit", "${NAME_SUFFIX}")]
   cache-to = ["type=inline"]
   cache-from = ["${REPO}:buildkit-master"]
+  target = "binaries"
 }
 
 target "buildkit-helper-all" {

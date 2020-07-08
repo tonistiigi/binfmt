@@ -83,6 +83,7 @@ RUN --mount=target=. \
 
 
 FROM scratch AS binaries
+ARG BINARY_PREFIX
 COPY --from=build usr/bin/${BINARY_PREFIX}qemu-* /
 
 FROM scratch
