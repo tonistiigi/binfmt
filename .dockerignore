@@ -1,0 +1,6 @@
+.git
+Dockerfile
+README.md
+docker-bake.hcl
+bin
+.github
