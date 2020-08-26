@@ -12,17 +12,16 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: azure/docker-login@v1
+      - uses: crazy-max/ghaction-docker-login@v1
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
         with:
-          login-server: https://index.docker.io/v1/
           username: ${{ secrets.DOCKERIO_USERNAME }}
           password: ${{ secrets.DOCKERIO_PASSWORD }}
       -
-        name: Setup
-        run: |
-          docker buildx create --use
-          docker buildx inspect --bootstrap
+        uses: docker/setup-buildx-action
+        # with:
+        #   driver-opt:
+        #     - image=moby/buildkit:master
       -
         name: Checkout
         uses: actions/checkout@v2
