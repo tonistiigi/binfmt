@@ -12,7 +12,7 @@ case ${1:-} in
   docker buildx build $progressFlag -f ./hack/dockerfiles/vendor.Dockerfile --target validate .
   ;;
 check)
-  status="$(git status --porcelain -- go.mod go.sum vendor 2>/dev/null)"
+  status="$(git status --porcelain -- go.mod go.sum 2>/dev/null)"
   diffs=$(echo "$status" | grep -v '^[RAD] ' || true)
   if [ "$diffs" ]; then
       {
