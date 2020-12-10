@@ -74,7 +74,7 @@ RUN cd /usr/bin; [ -z "$BINARY_PREFIX" ] || for f in $(ls qemu-*); do ln -s $f $
 
 FROM --platform=$BUILDPLATFORM tonistiigi/xx:golang@sha256:6f7d999551dd471b58f70716754290495690efa8421e0a1fcf18eb11d0c0a537 AS xgo
 
-FROM --platform=$BUILDPLATFORM golang:1.14-alpine AS binfmt
+FROM --platform=$BUILDPLATFORM golang:1.15-alpine AS binfmt
 COPY --from=xgo / /
 ENV CGO_ENABLED=0
 ARG TARGETPLATFORM
