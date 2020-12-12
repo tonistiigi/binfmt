@@ -12,15 +12,17 @@ echo $status | jq .supported | grep linux/arm/v7
 echo $status | jq .supported | grep linux/arm/v6
 echo $status | jq .supported | grep linux/riscv64
 echo $status | jq .supported | grep linux/ppc64le
-echo $status | jq .supported | grep linux/s390x
+echo $status | jq .supported | grep linux/386
 
 echo $status | jq .emulators | grep qemu-riscv64
 echo $status | jq .emulators | grep qemu-arm
+echo $status | jq .emulators | grep qemu-i386
 
 docker run --rm arm64v8/alpine uname -a
 docker run --rm arm32v7/alpine uname -a
 docker run --rm ppc64le/alpine uname -a
 docker run --rm s390x/alpine uname -a
+docker run --rm i386/alpine uname -a
 docker run --rm tonistiigi/debian:riscv uname -a
 
 if [ "$(uname -m)" != "x86_64" ]; then exit 0; fi 

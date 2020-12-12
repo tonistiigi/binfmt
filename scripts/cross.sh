@@ -68,6 +68,11 @@ case "$TARGETARCH" in
   DPKG_ARCH="s390x"
   PKG_PREFIX="s390x-linux-gnu"
   ;;
+"386")
+  OUT_ARCH="i386"
+  DPKG_ARCH="i386"
+  PKG_PREFIX="i686-linux-gnu"
+  ;;
 *)
   OUT_ARCH="$(uname -m)"
   DPKG_ARCH="$(dpkg --print-architecture)"
