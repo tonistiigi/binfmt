@@ -1,8 +1,10 @@
+// +build !windows
+
 package main
 
 import (
 	"github.com/containerd/containerd/platforms"
-	"github.com/moby/buildkit/util/binfmt_misc"
+	"github.com/moby/buildkit/util/archutil"
 )
 
 // https://github.com/qemu/qemu/blob/master/scripts/qemu-binfmt-conf.sh
@@ -48,7 +50,7 @@ var configs = map[string]config{
 
 func allArch() []string {
 	m := map[string]struct{}{}
-	for _, pp := range binfmt_misc.SupportedPlatforms(true) {
+	for _, pp := range archutil.SupportedPlatforms(true) {
 		p, err := platforms.Parse(pp)
 		if err == nil {
 			m[p.Architecture] = struct{}{}

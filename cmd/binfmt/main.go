@@ -12,7 +12,7 @@ import (
 	"syscall"
 
 	"github.com/containerd/containerd/platforms"
-	"github.com/moby/buildkit/util/binfmt_misc"
+	"github.com/moby/buildkit/util/archutil"
 	"github.com/pkg/errors"
 )
 
@@ -106,7 +106,7 @@ func printStatus() error {
 		Supported []string `json:"supported"`
 		Emulators []string `json:"emulators"`
 	}{
-		Supported: binfmt_misc.SupportedPlatforms(true),
+		Supported: archutil.SupportedPlatforms(true),
 		Emulators: emulators,
 	}
 
