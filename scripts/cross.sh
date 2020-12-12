@@ -36,7 +36,7 @@ case "$TARGETARCH" in
 "amd64")
   OUT_ARCH="x86_64"
   DPKG_ARCH="amd64"
-  PKG_PREFIX="x86-64-linux-gnu"
+  PKG_PREFIX="x86_64-linux-gnu"
   ;;
 "arm64")
   OUT_ARCH="aarch64"
@@ -103,7 +103,11 @@ case "$1" in
   pkgs=""
   for name in $@; do
     if [ "$OUT_ARCH" != "$(uname -m)" ] && [ "$name" = "gcc" ] || [ "$name" = "g++" ]; then
-      pkgs="$pkgs $name-$PKG_PREFIX "
+      pfx="$PKG_PREFIX"
+      if [ "$pfx" = "x86_64-linux-gnu" ]; then
+        pfx="x86-64-linux-gnu"
+       fi
+      pkgs="$pkgs $name-$pfx "
     else
       pkgs="$pkgs $name:$DPKG_ARCH "
     fi
