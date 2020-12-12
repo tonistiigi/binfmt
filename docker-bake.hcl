@@ -21,7 +21,7 @@ target "binaries" {
 }
 
 target "all-arch" {
-  platforms = ["linux/amd64", "linux/arm64", "linux/arm", "linux/ppc64le", "linux/s390x", "linux/riscv64"]
+  platforms = ["linux/amd64", "linux/arm64", "linux/arm", "linux/ppc64le", "linux/s390x", "linux/riscv64", "linux/386"]
 }
 
 target "mainline" {

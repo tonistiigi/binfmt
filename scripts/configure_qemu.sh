@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-set -x
+set -e
 
 : ${QEMU_TARGETS=}
 : ${FLAG_CROSS_PREFIX=}
@@ -24,6 +24,9 @@ if [ "$arch" != "ppc64le" ]; then
 fi
 if [ "$arch" != "s390x" ] && [ "$arch" != "riscv64" ] ; then
     QEMU_TARGETS="$QEMU_TARGETS s390x-linux-user"
+fi
+if [ "$arch" != "i386" ] ; then
+    QEMU_TARGETS="$QEMU_TARGETS i386-linux-user"
 fi
 
 if cross.sh is_cross; then 
@@ -54,7 +57,8 @@ set -x
   --disable-mpath \
   --disable-nettle \
   --disable-opengl \
+  --disable-pie \
   --disable-sdl \
   --disable-spice \
   --disable-tools \
-  --disable-vte $FLAG_CROSS_PREFIX --target-list="$QEMU_TARGETS" 
+  --disable-vte $FLAG_CROSS_PREFIX --target-list="$QEMU_TARGETS"
