@@ -21,13 +21,13 @@ target "binaries" {
 }
 
 target "all-arch" {
-  platforms = ["linux/amd64", "linux/arm64", "linux/arm", "linux/ppc64le", "linux/s390x", "linux/riscv64"]
+  platforms = ["linux/amd64", "linux/arm64", "linux/arm", "linux/ppc64le", "linux/s390x", "linux/riscv64", "linux/386"]
 }
 
 target "mainline" {
   args = {
     QEMU_REPO = "https://github.com/qemu/qemu"
-    QEMU_VERSION = "v5.1.0"
+    QEMU_VERSION = "v5.2.0"
   }
   tags = [suffix-tag("${REPO}", "latest", "${NAME_SUFFIX}")]
   cache-to = ["type=inline"]

@@ -68,6 +68,11 @@ case "$TARGETARCH" in
   DPKG_ARCH="s390x"
   PKG_PREFIX="s390x-linux-gnu"
   ;;
+"386")
+  OUT_ARCH="i386"
+  DPKG_ARCH="i386"
+  PKG_PREFIX="i686-linux-gnu"
+  ;;
 *)
   OUT_ARCH="$(uname -m)"
   DPKG_ARCH="$(dpkg --print-architecture)"
@@ -103,7 +108,11 @@ case "$1" in
   pkgs=""
   for name in $@; do
     if [ "$OUT_ARCH" != "$(uname -m)" ] && [ "$name" = "gcc" ] || [ "$name" = "g++" ]; then
-      pkgs="$pkgs $name-$PKG_PREFIX "
+      pfx="$PKG_PREFIX"
+      if [ "$pfx" = "x86_64-linux-gnu" ]; then
+        pfx="x86-64-linux-gnu"
+       fi
+      pkgs="$pkgs $name-$pfx "
     else
       pkgs="$pkgs $name:$DPKG_ARCH "
     fi

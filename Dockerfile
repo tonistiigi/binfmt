@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.2
 
-ARG QEMU_VERSION=v5.1.0
+ARG QEMU_VERSION=v5.2.0
 ARG QEMU_REPO=https://github.com/qemu/qemu
 
 FROM --platform=$BUILDPLATFORM debian:buster AS src
@@ -21,9 +21,12 @@ FROM --platform=$BUILDPLATFORM debian:buster AS qemu
 
 RUN apt-get update && \
   apt-get install -y \
+  dpkg-dev \
+  git \
+  ninja-build \
   pkg-config \
   python3 \
-  dpkg-dev
+  python3-setuptools
 
 WORKDIR /qemu
 
@@ -39,6 +42,7 @@ FROM qemu AS base-ppc64le
 FROM qemu AS base-s390x
 FROM qemu AS base-armv7
 FROM qemu AS base-armv6
+FROM qemu AS base-386
 
 FROM tonistiigi/debian:riscv AS riscv-libglibc
 RUN apt-get update && apt-get install -y libglib2.0-dev
@@ -47,7 +51,14 @@ RUN for f in $(dpkg-query -L zlib1g-dev libglib2.0-dev libpcre3-dev libglib2.0-0
 RUN mkdir -p /out && tar cvf /out/libglibc.tar -T /tmp/list
 
 FROM tonistiigi/xx:riscv-toolchain AS base-riscv64
-RUN apt-get update && apt-get install -y python3 dpkg-dev pkg-config
+RUN apt-get update && \
+  apt-get install -y \
+  dpkg-dev \
+  git \
+  ninja-build \
+  pkg-config \
+  python3 \
+  python3-setuptools
 ENV PATH=/qemu/install-scripts:$PATH
 WORKDIR /qemu
 
@@ -74,7 +85,7 @@ RUN cd /usr/bin; [ -z "$BINARY_PREFIX" ] || for f in $(ls qemu-*); do ln -s $f $
 
 FROM --platform=$BUILDPLATFORM tonistiigi/xx:golang@sha256:6f7d999551dd471b58f70716754290495690efa8421e0a1fcf18eb11d0c0a537 AS xgo
 
-FROM --platform=$BUILDPLATFORM golang:1.14-alpine AS binfmt
+FROM --platform=$BUILDPLATFORM golang:1.15-alpine AS binfmt
 COPY --from=xgo / /
 ENV CGO_ENABLED=0
 ARG TARGETPLATFORM
