@@ -1,23 +1,21 @@
 #!/usr/bin/env sh
-
 set -eu
 
-: ${CONTINUOUS_INTEGRATION=}
-
-progressFlag=""
-if [ "$CONTINUOUS_INTEGRATION" = "true" ]; then progressFlag="--progress=plain"; fi
-
 case ${1:-} in
-'')
-  docker buildx build $progressFlag -f ./hack/dockerfiles/vendor.Dockerfile --target validate .
-  ;;
-check)
-  status="$(git status --porcelain -- go.mod go.sum vendor 2>/dev/null)"
-  diffs=$(echo "$status" | grep -v '^[RAD] ' || true)
-  if [ "$diffs" ]; then
+  '')
+    . $(dirname $0)/util
+    buildxCmd build \
+      --target validate \
+      --file ./hack/dockerfiles/vendor.Dockerfile \
+      .
+    ;;
+  check)
+    status="$(git status --porcelain -- go.mod go.sum vendor 2>/dev/null)"
+    diffs=$(echo "$status" | grep -v '^[RAD] ' || true)
+    if [ "$diffs" ]; then
       {
-	set +x
-        echo 'The result of "make vendor" differs'
+        set +x
+        echo 'The result of "./hack/update-vendor" differs'
         echo
         echo "$diffs"
         echo
@@ -25,7 +23,7 @@ check)
         echo
       } >&2
       exit 1
-  fi
-  echo 'Congratulations! All vendoring changes are done the right way.'
-  ;;
+    fi
+    echo 'Congratulations! All vendoring changes are done the right way.'
+    ;;
 esac

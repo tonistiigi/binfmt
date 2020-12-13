@@ -1,34 +1,141 @@
 name: ci
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
+    tags:
+      - v*
   pull_request:
     branches:
       - master
 
+env:
+  CACHEKEY_MAINLINE_ALL: "mainline-all"
+  CACHEKEY_BUILDKIT_HELPER_ALL: "buildkit-helper-all"
+
 jobs:
-  test:
+  validate:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        script:
+          - ./hack/lint
+          - ./hack/validate-vendor
+          - ./hack/install-and-test
     steps:
-      - uses: docker/login-action@v1 
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
-        with:
-          username: ${{ secrets.DOCKERIO_USERNAME }}
-          password: ${{ secrets.DOCKERIO_PASSWORD }}
-      -
-        uses: docker/setup-buildx-action@v1
-        name: Setup buildx
       -
         name: Checkout
         uses: actions/checkout@v2
       -
-        name: Validate all
-        run: |
-          ./hack/ci
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
       -
-        name: Publish master
-        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+        name: Run
         run: |
-          NAME_SUFFIX=master docker buildx bake --push --progress=plain mainline-all buildkit-helper-all
+          ${{ matrix.script }}
+
+  build-base:
+    runs-on: ubuntu-latest
+    outputs:
+      name_suffix: ${{ steps.prep.outputs.name_suffix }}
+      push: ${{ steps.prep.outputs.push }}
+    steps:
+      -
+        name: Prepare
+        id: prep
+        run: |
+          NAME_SUFFIX=pr
+          PUSH=false
+          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+            NAME_SUFFIX=${GITHUB_REF#refs/tags/}
+            PUSH=true
+          elif [[ $GITHUB_REF == refs/heads/* ]]; then
+            NAME_SUFFIX=$(echo ${GITHUB_REF#refs/heads/} | sed -r 's#/+#-#g')
+            PUSH=true
+          fi
+          echo ::set-output name=name_suffix::${NAME_SUFFIX}
+          echo ::set-output name=push::${PUSH}
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [ build-base ]
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - mainline-all
+          - buildkit-helper-all
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Cache ${{ matrix.target }}
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.binfmt-cache/${{ matrix.target }}
+          key: ${{ runner.os }}-binfmt-${{ matrix.target }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-binfmt-${{ matrix.target }}-
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Build ${{ matrix.target }}
+        run: |
+          docker buildx bake --progress=plain \
+            "--set=*.cache-from=type=local,src=/tmp/.binfmt-cache/${{ matrix.target }}" \
+            "--set=*.cache-to=type=local,dest=/tmp/.binfmt-cache/${{ matrix.target }}-new" \
+            ${{ matrix.target }}
+        env:
+          NAME_SUFFIX: ${{ needs.build-base.outputs.name_suffix }}
+      -
+        # FIXME: Temp fix for https://github.com/moby/buildkit/issues/1850
+        name: Move cache
+        run: |
+          rm -rf /tmp/.binfmt-cache/${{ matrix.target }}
+          mv /tmp/.binfmt-cache/${{ matrix.target }}-new /tmp/.binfmt-cache/${{ matrix.target }}
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: [ build-base, build ]
+    strategy:
+      fail-fast: true
+      matrix:
+        target:
+          - mainline-all
+          - buildkit-helper-all
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Cache ${{ matrix.target }}
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.binfmt-cache/${{ matrix.target }}
+          key: ${{ runner.os }}-binfmt-${{ matrix.target }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-binfmt-${{ matrix.target }}-
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Login to DockerHub
+        if: needs.build-base.outputs.push == 'true'
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERIO_USERNAME }}
+          password: ${{ secrets.DOCKERIO_PASSWORD }}
+      -
+        name: Publish ${{ matrix.target }}
+        if: needs.build-base.outputs.push == 'true'
+        run: |
+          docker buildx bake --push --progress=plain \
+            "--set=*.cache-from=type=local,src=/tmp/.binfmt-cache/${{ matrix.target }}" \
+            ${{ matrix.target }}
+        env:
+          NAME_SUFFIX: ${{ needs.build-base.outputs.name_suffix }}
