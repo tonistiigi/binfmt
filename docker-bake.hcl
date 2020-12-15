@@ -40,8 +40,8 @@ target "mainline-all" {
 
 target "buildkit-helper" {
   args = {
-    QEMU_REPO = "https://github.com/tiborvass/qemu"
-    QEMU_VERSION = "878126af123e293a0b4fe59dd697e28c86244336"
+    QEMU_REPO = "https://github.com/tonistiigi/qemu"
+    QEMU_VERSION = "be25039802ac0d9ead77960a8c14c1ecdb75ee34"
     BINARY_PREFIX = "buildkit-"
   }
   tags = [suffix-tag("${REPO}", "buildkit", "${NAME_SUFFIX}")]
