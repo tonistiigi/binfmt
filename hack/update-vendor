@@ -1,17 +1,16 @@
 #!/usr/bin/env bash
 
-set -eu -o pipefail -x
+. $(dirname $0)/util
+set -eu
 
-: ${CONTINUOUS_INTEGRATION=}
+output=$(mktemp -d -t binfmt-output.XXXXXXXXXX)
 
-progressFlag=""
-if [ "$CONTINUOUS_INTEGRATION" == "true" ]; then progressFlag="--progress=plain"; fi
+buildxCmd build \
+  --target "update" \
+  --output "type=local,dest=$output" \
+  --file "./hack/dockerfiles/vendor.Dockerfile" \
+  .
 
-output=$(mktemp -d -t buildx-output.XXXXXXXXXX)
-docker buildx build $progressFlag \
-    --target update \
-    -f ./hack/dockerfiles/vendor.Dockerfile \
-    -o type=local,dest=$output .
 rm -rf ./vendor
 cp -R "$output"/* .
 rm -rf $output

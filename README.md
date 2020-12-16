@@ -1,3 +1,9 @@
+# Binfmt
+
+[![CI Status](https://github.com/tonistiigi/binfmt/workflows/ci/badge.svg)](https://github.com/tonistiigi/binfmt/actions?query=workflow%3Aci)
+[![Go Report Card](https://goreportcard.com/badge/github.com/tonistiigi/binfmt)](https://goreportcard.com/report/github.com/tonistiigi/binfmt)
+[![Docker Pulls](https://img.shields.io/docker/pulls/tonistiigi/binfmt.svg?logo=docker)](https://hub.docker.com/r/tonistiigi/binfmt/)
+
 Cross-platform emulator collection distributed with Docker images.
 
 ## Build local binaries
@@ -32,6 +38,7 @@ Prints similar to:
   "emulators": [
     "qemu-aarch64",
     "qemu-arm",
+    "qemu-i386",
     "qemu-ppc64le",
     "qemu-riscv64",
     "qemu-s390x"
@@ -82,4 +89,5 @@ docker run --rm tonistiigi/debian:riscv uname -a
 
 ## Buildkit-helper target
 
-This repository also provides helper for BuildKit's automatic emulation support https://github.com/moby/buildkit/pull/1528 . These binaries are BuildKit specific and should not be installed in kernel with `binfmt_misc`.
+This repository also provides helper for BuildKit's automatic emulation support https://github.com/moby/buildkit/pull/1528.
+These binaries are BuildKit specific and should not be installed in kernel with `binfmt_misc`.
