@@ -53,3 +53,10 @@ target "buildkit-helper" {
 target "buildkit-helper-all" {
   inherits = ["buildkit-helper", "all-arch"]
 }
+
+target "buildkit-test" {
+  inherits = ["buildkit-helper"]
+  target = "buildkit-test"
+  cache-to = []
+  tags = []
+}
