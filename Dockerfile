@@ -93,10 +93,19 @@ WORKDIR /src
 RUN --mount=target=. \
   TARGETPLATFORM=$TARGETPLATFORM go build -o /go/bin/binfmt ./cmd/binfmt
 
-
 FROM scratch AS binaries
 ARG BINARY_PREFIX
 COPY --from=build usr/bin/${BINARY_PREFIX}qemu-* /
+
+FROM --platform=$BUILDPLATFORM tonistiigi/bats-assert AS assert
+
+FROM golang:alpine AS buildkit-test
+RUN apk add --no-cache bash bats
+WORKDIR /work
+COPY --from=assert . .
+COPY test .
+COPY --from=binaries / /usr/bin
+RUN ./run.sh
 
 FROM scratch
 COPY --from=binaries / /usr/bin/

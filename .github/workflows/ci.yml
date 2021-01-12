@@ -80,6 +80,11 @@ jobs:
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       -
+        name: Test
+        if: matrix.target == 'buildkit-helper-all'
+        run: |
+          docker buildx bake buildkit-test --progress=plain
+      -
         name: Build ${{ matrix.target }}
         run: |
           docker buildx bake --progress=plain \
