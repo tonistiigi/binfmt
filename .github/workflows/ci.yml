@@ -85,6 +85,9 @@ jobs:
         run: |
           docker buildx bake buildkit-test --progress=plain
       -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      -
         name: Build ${{ matrix.target }}
         run: |
           docker buildx bake --progress=plain \

@@ -12,7 +12,7 @@ jobs:
           password: ${{ secrets.DOCKERIO_PASSWORD }}
       -
         uses: docker/setup-buildx-action@v1
-        name: Setup buildp
+        name: Setup build
       - name: Checkout
         uses: actions/checkout@v2
       - name: Deployment info
@@ -20,6 +20,9 @@ jobs:
         run: |
           echo "::set-output name=deployment_id::$(cat $GITHUB_EVENT_PATH | jq .deployment.id)"
           echo "::set-output name=deployment_target::$(cat $GITHUB_EVENT_PATH | jq -r .deployment.payload.target)"
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
       - name: Build and push
         env:
           DEPLOYMENT_TARGET: "${{ steps.info.outputs.deployment_target }}"
