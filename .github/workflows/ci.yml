@@ -135,6 +135,9 @@ jobs:
           username: ${{ secrets.DOCKERIO_USERNAME }}
           password: ${{ secrets.DOCKERIO_PASSWORD }}
       -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      -
         name: Publish ${{ matrix.target }}
         run: |
           docker buildx bake --push --progress=plain \
