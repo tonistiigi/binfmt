@@ -73,8 +73,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /tmp/.binfmt-cache
-          key: ${{ runner.os }}-binfmt-${{ github.sha }}
+          key: ${{ runner.os }}-binfmt-${{ matrix.target }}-${{ github.sha }}
           restore-keys: |
+            ${{ runner.os }}-binfmt-${{ matrix.target }}-
             ${{ runner.os }}-binfmt-
       -
         name: Set up Docker Buildx
@@ -122,8 +123,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /tmp/.binfmt-cache
-          key: ${{ runner.os }}-binfmt-${{ github.sha }}
+          key: ${{ runner.os }}-binfmt-${{ matrix.target }}-${{ github.sha }}
           restore-keys: |
+            ${{ runner.os }}-binfmt-${{ matrix.target }}-
             ${{ runner.os }}-binfmt-
       -
         name: Set up Docker Buildx
