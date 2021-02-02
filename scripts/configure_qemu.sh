@@ -28,6 +28,12 @@ fi
 if [ "$arch" != "i386" ] ; then
     QEMU_TARGETS="$QEMU_TARGETS i386-linux-user"
 fi
+if [ "$arch" != "mips64el" ] ; then
+    QEMU_TARGETS="$QEMU_TARGETS mips64el-linux-user"
+fi
+if [ "$arch" != "mips64" ] ; then
+    QEMU_TARGETS="$QEMU_TARGETS mips64-linux-user"
+fi
 
 if cross.sh is_cross; then 
     FLAG_CROSS_PREFIX="--cross-prefix=$(cross.sh cross-prefix)-"
