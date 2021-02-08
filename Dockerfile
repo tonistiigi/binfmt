@@ -43,6 +43,7 @@ FROM qemu AS base-s390x
 FROM qemu AS base-armv7
 FROM qemu AS base-armv6
 FROM qemu AS base-386
+FROM qemu AS base-mips64le
 
 FROM tonistiigi/debian:riscv AS riscv-libglibc
 RUN apt-get update && apt-get install -y libglib2.0-dev
