@@ -28,7 +28,7 @@ fi
 if [ "$arch" != "i386" ] ; then
     QEMU_TARGETS="$QEMU_TARGETS i386-linux-user"
 fi
-if [ "$arch" != "mips64el" ] ; then
+if [ "$arch" != "mips64le" ] ; then
     QEMU_TARGETS="$QEMU_TARGETS mips64el-linux-user"
 fi
 if [ "$arch" != "mips64" ] ; then

@@ -73,6 +73,11 @@ case "$TARGETARCH" in
   DPKG_ARCH="i386"
   PKG_PREFIX="i686-linux-gnu"
   ;;
+"mips64le")
+  OUT_ARCH="mips64"
+  DPKG_ARCH="mips64el"
+  PKG_PREFIX="mips64el-linux-gnuabi64"
+  ;;
 *)
   OUT_ARCH="$(uname -m)"
   DPKG_ARCH="$(dpkg --print-architecture)"
