@@ -1,13 +1,23 @@
 variable "REPO" {
   default = "tonistiigi/binfmt"
 }
-variable "NAME_SUFFIX" {
+variable "TAG" {
   default = ""
 }
 
-function "suffix-tag" {
-  params = [name, tag, suffix]
-  result = "${name}:${"${suffix}"==""?"${tag}":"${"${tag}"=="latest"?"${suffix}":"${tag}-${suffix}"}"}"
+function "gen-tags" {
+  params = [flavor, tag]
+  result = <<-EOT
+    %{ if tag == "" }
+      ${flavor},
+    %{ endif }
+    %{ if flavor == "mainline" && tag != "" }
+      ${tag},latest
+    %{ endif }
+    %{ if flavor != "mainline" && tag != "" }
+      ${flavor}-${tag},${flavor}-latest
+    %{ endif }
+  EOT
 }
 
 group "default" {
@@ -29,7 +39,7 @@ target "mainline" {
     QEMU_REPO = "https://github.com/qemu/qemu"
     QEMU_VERSION = "v5.2.0"
   }
-  tags = [suffix-tag("${REPO}", "latest", "${NAME_SUFFIX}")]
+  tags = formatlist( "${REPO}:%s", compact(split(",", trimspace(gen-tags("mainline", "${TAG}")))))
   cache-to = ["type=inline"]
   cache-from = ["${REPO}:master"]
 }
@@ -38,24 +48,24 @@ target "mainline-all" {
   inherits = ["mainline", "all-arch"]
 }
 
-target "buildkit-helper" {
+target "buildkit" {
   args = {
     QEMU_REPO = "https://github.com/tonistiigi/qemu"
     QEMU_VERSION = "be25039802ac0d9ead77960a8c14c1ecdb75ee34"
     BINARY_PREFIX = "buildkit-"
   }
-  tags = [suffix-tag("${REPO}", "buildkit", "${NAME_SUFFIX}")]
+  tags = formatlist("${REPO}:%s", compact(split(",", trimspace(gen-tags("buildkit", "${TAG}")))))
   cache-to = ["type=inline"]
   cache-from = ["${REPO}:buildkit-master"]
   target = "binaries"
 }
 
-target "buildkit-helper-all" {
-  inherits = ["buildkit-helper", "all-arch"]
+target "buildkit-all" {
+  inherits = ["buildkit", "all-arch"]
 }
 
 target "buildkit-test" {
-  inherits = ["buildkit-helper"]
+  inherits = ["buildkit"]
   target = "buildkit-test"
   cache-to = []
   tags = []

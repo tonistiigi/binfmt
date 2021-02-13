@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+REPO=$1
+TAG=$2
+PUSH=$3
+
+. $(dirname $0)/util
+set -eu
+
+: ${TARGET=}
+
+usage() {
+  echo "usage: $0 <repo> <tag> [push]"
+  exit 1
+}
+
+if [ -z "$TAG" ] || [ -z "$REPO" ]; then
+  usage
+fi
+
+setFlags=""
+if [ "$GITHUB_ACTIONS" = "true" ]; then
+  if [ -n "$cacheRefFrom" ]; then
+    setFlags="$setFlags--set=*.cache-from=type=local,src=$cacheRefFrom "
+  fi
+  if [ -n "$cacheRefTo" ]; then
+    setFlags="$setFlags--set=*.cache-to=type=local,dest=$cacheRefTo "
+  fi
+fi
+if [ "$PUSH" = "push" ]; then
+  setFlags="$setFlags--push "
+fi
+
+REPO=${REPO} TAG=${TAG} buildxCmd bake $setFlags --print ${TARGET:-mainline}
+REPO=${REPO} TAG=${TAG} buildxCmd bake $setFlags ${TARGET:-mainline}

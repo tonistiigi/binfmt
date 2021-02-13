@@ -4,12 +4,15 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - master
+      - '**'
     tags:
-      - v*
+      - 'deploy/*'
   pull_request:
     branches:
-      - master
+      - 'master'
+
+env:
+  REPO_SLUG: tonistiigi/binfmt
 
 jobs:
   validate:
@@ -36,23 +39,25 @@ jobs:
   build-base:
     runs-on: ubuntu-latest
     outputs:
-      name_suffix: ${{ steps.prep.outputs.name_suffix }}
+      tag: ${{ steps.prep.outputs.tag }}
       push: ${{ steps.prep.outputs.push }}
     steps:
       -
         name: Prepare
         id: prep
         run: |
-          NAME_SUFFIX=pr
+          TAG=na
           PUSH=false
-          if [[ $GITHUB_REF == refs/tags/v* ]]; then
-            NAME_SUFFIX=${GITHUB_REF#refs/tags/}
+          if [[ $GITHUB_REF == refs/pull/* ]]; then
+            TAG=pr-${{ github.event.number }}
+          elif [[ $GITHUB_REF == refs/tags/deploy/* ]]; then
+            TAG=${GITHUB_REF#refs/tags/deploy/}
             PUSH=true
           elif [[ $GITHUB_REF == refs/heads/* ]]; then
-            NAME_SUFFIX=$(echo ${GITHUB_REF#refs/heads/} | sed -r 's#/+#-#g')
+            TAG=$(echo ${GITHUB_REF#refs/heads/} | sed -r 's#/+#-#g')
             PUSH=true
           fi
-          echo ::set-output name=name_suffix::${NAME_SUFFIX}
+          echo ::set-output name=tag::${TAG}
           echo ::set-output name=push::${PUSH}
 
   build:
@@ -61,9 +66,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target:
-          - mainline-all
-          - buildkit-helper-all
+        target_base:
+          - mainline
+          - buildkit
     steps:
       -
         name: Checkout
@@ -73,36 +78,35 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /tmp/.binfmt-cache
-          key: ${{ runner.os }}-binfmt-${{ matrix.target }}-${{ github.sha }}
+          key: ${{ runner.os }}-binfmt-${{ matrix.target_base }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-binfmt-${{ matrix.target }}-
+            ${{ runner.os }}-binfmt-${{ matrix.target_base }}-
             ${{ runner.os }}-binfmt-
       -
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       -
         name: Test
-        if: matrix.target == 'buildkit-helper-all'
+        if: matrix.target_base == 'buildkit-helper-all'
         run: |
           docker buildx bake buildkit-test --progress=plain
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       -
-        name: Build ${{ matrix.target }}
+        name: Build ${{ matrix.target_base }}
         run: |
-          docker buildx bake --progress=plain \
-            "--set=*.cache-from=type=local,src=/tmp/.binfmt-cache/${{ matrix.target }}" \
-            "--set=*.cache-to=type=local,dest=/tmp/.binfmt-cache/${{ matrix.target }}-new" \
-            ${{ matrix.target }}
+          ./hack/images "${{ env.REPO_SLUG }}" "${{ needs.build-base.outputs.tag }}"
         env:
-          NAME_SUFFIX: ${{ needs.build-base.outputs.name_suffix }}
+          TARGET: ${{ matrix.target_base }}-all
+          CACHEDIR_FROM: /tmp/.binfmt-cache/${{ matrix.target_base }}
+          CACHEDIR_TO: /tmp/.binfmt-cache/${{ matrix.target_base }}-new
       -
         # FIXME: Temp fix for https://github.com/moby/buildkit/issues/1850
         name: Move cache
         run: |
-          rm -rf /tmp/.binfmt-cache/${{ matrix.target }}
-          mv /tmp/.binfmt-cache/${{ matrix.target }}-new /tmp/.binfmt-cache/${{ matrix.target }}
+          rm -rf /tmp/.binfmt-cache/${{ matrix.target_base }}
+          mv /tmp/.binfmt-cache/${{ matrix.target_base }}-new /tmp/.binfmt-cache/${{ matrix.target_base }}
 
   publish:
     runs-on: ubuntu-latest
@@ -111,9 +115,9 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        target:
-          - mainline-all
-          - buildkit-helper-all
+        target_base:
+          - mainline
+          - buildkit
     steps:
       -
         name: Checkout
@@ -123,10 +127,13 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /tmp/.binfmt-cache
-          key: ${{ runner.os }}-binfmt-${{ matrix.target }}-${{ github.sha }}
+          key: ${{ runner.os }}-binfmt-${{ matrix.target_base }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-binfmt-${{ matrix.target }}-
+            ${{ runner.os }}-binfmt-${{ matrix.target_base }}-
             ${{ runner.os }}-binfmt-
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
       -
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
@@ -137,13 +144,9 @@ jobs:
           username: ${{ secrets.DOCKERIO_USERNAME }}
           password: ${{ secrets.DOCKERIO_PASSWORD }}
       -
-        name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
-      -
-        name: Publish ${{ matrix.target }}
+        name: Publish ${{ matrix.target_base }}
         run: |
-          docker buildx bake --push --progress=plain \
-            "--set=*.cache-from=type=local,src=/tmp/.binfmt-cache/${{ matrix.target }}" \
-            ${{ matrix.target }}
+          ./hack/images "${{ env.REPO_SLUG }}" "${{ needs.build-base.outputs.tag }}" push
         env:
-          NAME_SUFFIX: ${{ needs.build-base.outputs.name_suffix }}
+          TARGET: ${{ matrix.target_base }}-all
+          CACHEDIR_FROM: /tmp/.binfmt-cache/${{ matrix.target_base }}
