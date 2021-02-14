@@ -25,7 +25,6 @@ echo $status | jq .supported | grep linux/386
 
 echo $status | jq .emulators | grep qemu-riscv64
 echo $status | jq .emulators | grep qemu-arm
-echo $status | jq .emulators | grep qemu-i386
 
 docker run --rm arm64v8/alpine uname -a
 docker run --rm arm32v7/alpine uname -a

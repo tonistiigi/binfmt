@@ -3,6 +3,8 @@
 package main
 
 import (
+	"log"
+
 	"github.com/containerd/containerd/platforms"
 	"github.com/moby/buildkit/util/archutil"
 )
@@ -46,7 +48,7 @@ var configs = map[string]config{
 		magic:  `\x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\xf3\x00`,
 		mask:   `\xff\xff\xff\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff`,
 	},
-	"i386": {
+	"386": {
 		binary: "qemu-i386",
 		magic:  `\x7fELF\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x03\x00`,
 		mask:   `\xff\xff\xff\xff\xff\xfe\xfe\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff`,
@@ -69,6 +71,8 @@ func allArch() []string {
 		p, err := platforms.Parse(pp)
 		if err == nil {
 			m[p.Architecture] = struct{}{}
+		} else {
+			log.Printf("error: %+v", err)
 		}
 	}
 
