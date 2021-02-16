@@ -2,7 +2,7 @@ variable "REPO" {
   default = "tonistiigi/binfmt"
 }
 variable "NAME_SUFFIX" {
-  default = ""
+  default = "qemu-v5.0.1"
 }
 
 function "suffix-tag" {
@@ -27,7 +27,7 @@ target "all-arch" {
 target "mainline" {
   args = {
     QEMU_REPO = "https://github.com/qemu/qemu"
-    QEMU_VERSION = "v5.2.0"
+    QEMU_VERSION = "v5.0.1"
   }
   tags = [suffix-tag("${REPO}", "latest", "${NAME_SUFFIX}")]
   cache-to = ["type=inline"]
