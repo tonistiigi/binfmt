@@ -76,6 +76,7 @@ FROM base-$TARGETARCH$TARGETVARIANT AS base
 FROM base AS build
 ARG TARGETPLATFORM
 ARG VERSION
+ARG QEMU_VERSION
 RUN --mount=target=.,from=src,src=/src/qemu,rw --mount=target=./install-scripts,src=scripts \
   TARGETPLATFORM=${TARGETPLATFORM} configure_qemu.sh && \
   make -j "$(getconf _NPROCESSORS_ONLN)" && \
