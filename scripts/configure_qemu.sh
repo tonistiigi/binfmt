@@ -42,7 +42,7 @@ fi
 set -x
 ./configure \
   --prefix=/usr \
-  --with-pkgversion=$VERSION \
+  --with-pkgversion=$QEMU_VERSION \
   --enable-linux-user \
   --disable-system \
   --static \
