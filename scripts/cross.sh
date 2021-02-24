@@ -74,7 +74,7 @@ case "$TARGETARCH" in
   PKG_PREFIX="i686-linux-gnu"
   ;;
 "mips64le")
-  OUT_ARCH="mips64"
+  OUT_ARCH="mips64le"
   DPKG_ARCH="mips64el"
   PKG_PREFIX="mips64el-linux-gnuabi64"
   ;;
