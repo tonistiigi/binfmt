@@ -27,7 +27,7 @@ target "all-arch" {
 target "mainline" {
   args = {
     QEMU_REPO = "https://github.com/qemu/qemu"
-    QEMU_VERSION = "v5.2.0"
+    QEMU_VERSION = "v6.0.0-rc4"
   }
   tags = [suffix-tag("${REPO}", "latest", "${NAME_SUFFIX}")]
   cache-to = ["type=inline"]
