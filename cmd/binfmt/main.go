@@ -133,6 +133,27 @@ func parseArch(in string) (out []string) {
 	return
 }
 
+func parseUninstall(in string) (out []string) {
+	if in == "" {
+		return
+	}
+	for _, v := range strings.Split(in, ",") {
+		if p, err := platforms.Parse(v); err == nil {
+			if c, ok := configs[p.Architecture]; ok {
+				v = strings.TrimPrefix(c.binary, "qemu-")
+			}
+		}
+		fis, err := filepath.Glob(filepath.Join(mount, v))
+		if err != nil || len(fis) == 0 {
+			out = append(out, v)
+		}
+		for _, fi := range fis {
+			out = append(out, filepath.Base(fi))
+		}
+	}
+	return
+}
+
 func main() {
 	flag.Parse()
 
@@ -140,6 +161,7 @@ func main() {
 		log.Printf("error: %+v", err)
 	}
 }
+
 func run() error {
 	if _, err := os.Stat(filepath.Join(mount, "status")); err != nil {
 		if err := syscall.Mount("binfmt_misc", mount, "binfmt_misc", 0, ""); err != nil {
@@ -148,10 +170,7 @@ func run() error {
 		defer syscall.Unmount(mount, 0)
 	}
 
-	for _, name := range parseArch(toUninstall) {
-		if name == "arm64" {
-			name = "aarch64"
-		}
+	for _, name := range parseUninstall(toUninstall) {
 		err := uninstall(name)
 		if err == nil {
 			log.Printf("uninstalling: %s OK", name)

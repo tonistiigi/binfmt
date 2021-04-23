@@ -61,6 +61,12 @@ docker run --privileged --rm tonistiigi/binfmt --uninstall qemu-aarch64
 
 Emulator names can be found from the status output.
 
+You can also uninstall all archs for a specific emulator:
+
+```bash
+docker run --privileged --rm tonistiigi/binfmt --uninstall qemu-*
+```
+
 ## Development commands
 
 ```bash

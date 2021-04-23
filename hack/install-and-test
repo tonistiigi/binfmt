@@ -13,6 +13,7 @@ fi
 NAME_SUFFIX=${NAME_SUFFIX:-test} buildxCmd bake $setFlags --load mainline
 
 set -o pipefail -x
+docker run --rm --privileged tonistiigi/binfmt:${NAME_SUFFIX:-test} --uninstall qemu-*
 status=$(docker run --rm --privileged tonistiigi/binfmt:${NAME_SUFFIX:-test} --install all)
 
 echo $status | jq .supported | grep linux/arm64
