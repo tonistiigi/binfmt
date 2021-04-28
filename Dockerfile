@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.2
 
-ARG QEMU_VERSION=v5.2.0
+ARG QEMU_VERSION
 ARG QEMU_REPO=https://github.com/qemu/qemu
 
 FROM --platform=$BUILDPLATFORM debian:buster AS src

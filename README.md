@@ -93,7 +93,7 @@ docker run --rm s390x/alpine uname -a
 docker run --rm tonistiigi/debian:riscv uname -a
 ```
 
-## Buildkit-helper target
+## `buildkit` target
 
 This repository also provides helper for BuildKit's automatic emulation support https://github.com/moby/buildkit/pull/1528.
 These binaries are BuildKit specific and should not be installed in kernel with `binfmt_misc`.
