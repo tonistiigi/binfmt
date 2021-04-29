@@ -100,10 +100,9 @@ jobs:
           targets: ${{ matrix.target }}
           push: ${{ needs.build-base.outputs.push }}
           set: |
+            *.tags=${{ needs.build-base.outputs.tag }}
             *.cache-from=type=local,src=/tmp/.binfmt-cache/${{ matrix.target }}
             *.cache-to=type=local,dest=/tmp/.binfmt-cache/${{ matrix.target }}-new
-        env:
-          TAG: ${{ needs.build-base.outputs.tag }}
       -
         # FIXME: Temp fix for https://github.com/moby/buildkit/issues/1850
         name: Move cache
