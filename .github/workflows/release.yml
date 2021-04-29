@@ -47,17 +47,35 @@ jobs:
           if [ "${{ github.event.inputs.qemu_ref }}" != "" ]; then
             REF=${{ github.event.inputs.qemu_ref }}
           fi
-          TAG=${{ github.event.inputs.qemu_version }}-${{ github.run_number }}
           if [ "${{ github.event.inputs.target }}" = "mainline" ]; then
-            GIT_TAG=deploy/${TAG}
+            TAG_PREFIX=qemu-
+            GIT_TAG=deploy/${TAG}-${RELEASE_NUM}
           else
-            GIT_TAG=${{ github.event.inputs.target }}/${TAG}
+            TAG_PREFIX=buildkit-
+            GIT_TAG=${{ github.event.inputs.target }}/${TAG}-${RELEASE_NUM}
           fi
           echo ::set-output name=repo::${REPO}
           echo ::set-output name=ref::${REF}
           echo ::set-output name=version::${{ github.event.inputs.qemu_version }}
-          echo ::set-output name=tag::${TAG}
+          echo ::set-output name=tag_prefix::${TAG_PREFIX}
           echo ::set-output name=git_tag::${GIT_TAG}
+      -
+        name: Docker meta
+        id: meta
+        uses: crazy-max/ghaction-docker-meta@v2
+        with:
+          images: ${{ env.REPO_SLUG }}
+          tags: |
+            type=raw,value=${{ steps.prep.outputs.tag_prefix }}${{ github.event.inputs.qemu_version }}-${{ github.run_number }}
+            type=raw,value=${{ steps.prep.outputs.tag_prefix }}${{ github.event.inputs.qemu_version }}
+            type=raw,value=${{ steps.prep.outputs.tag_prefix }}latest,enable=${{ github.event.inputs.target != 'mainline' }}
+            type=raw,value=latest,enable=${{ github.event.inputs.target == 'mainline' }}
+          flavor: |
+            latest=false
+          labels: |
+            org.opencontainers.image.title=Binfmt
+            org.opencontainers.image.description=Cross-platform emulator collection distributed with Docker images
+          bake-target: meta-helper
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v1
@@ -76,12 +94,13 @@ jobs:
       -
         uses: docker/bake-action@v1
         with:
+          files: |
+            ./docker-bake.hcl
+            ${{ steps.meta.outputs.bake-file }}
           targets: ${{ github.event.inputs.target }}-all
           push: ${{ github.event.inputs.dry-run != 'true' }}
         env:
           REPO: ${{ env.REPO_SLUG }}
-          TAG: ${{ steps.prep.outputs.tag }}
-          LATEST: ${{ github.event.inputs.latest }}
           QEMU_REPO: ${{ steps.prep.outputs.repo }}
           QEMU_VERSION: ${{ steps.prep.outputs.ref }}
       -
