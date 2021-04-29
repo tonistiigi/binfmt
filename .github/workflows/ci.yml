@@ -5,8 +5,6 @@ on:
   push:
     branches:
       - master
-    tags:
-      - v*
   pull_request:
     branches:
       - master
@@ -36,34 +34,33 @@ jobs:
   build-base:
     runs-on: ubuntu-latest
     outputs:
-      name_suffix: ${{ steps.prep.outputs.name_suffix }}
+      tag: ${{ steps.prep.outputs.tag }}
       push: ${{ steps.prep.outputs.push }}
     steps:
       -
         name: Prepare
         id: prep
         run: |
-          NAME_SUFFIX=pr
+          TAG=na
           PUSH=false
-          if [[ $GITHUB_REF == refs/tags/v* ]]; then
-            NAME_SUFFIX=${GITHUB_REF#refs/tags/}
-            PUSH=true
+          if [[ $GITHUB_REF == refs/pull/* ]]; then
+            TAG=pr-${{ github.event.number }}
           elif [[ $GITHUB_REF == refs/heads/* ]]; then
-            NAME_SUFFIX=$(echo ${GITHUB_REF#refs/heads/} | sed -r 's#/+#-#g')
+            TAG=$(echo ${GITHUB_REF#refs/heads/} | sed -r 's#/+#-#g')
             PUSH=true
           fi
-          echo ::set-output name=name_suffix::${NAME_SUFFIX}
+          echo ::set-output name=tag::${TAG}
           echo ::set-output name=push::${PUSH}
 
   build:
     runs-on: ubuntu-latest
-    needs: [ build-base ]
+    needs: [ validate, build-base ]
     strategy:
       fail-fast: false
       matrix:
         target:
           - mainline-all
-          - buildkit-helper-all
+          - buildkit-all
     steps:
       -
         name: Checkout
@@ -82,68 +79,34 @@ jobs:
         uses: docker/setup-buildx-action@v1
       -
         name: Test
-        if: matrix.target == 'buildkit-helper-all'
-        run: |
-          docker buildx bake buildkit-test --progress=plain
+        if: matrix.target == 'buildkit-all'
+        uses: docker/bake-action@v1
+        with:
+          targets: buildkit-test
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       -
+        name: Login to DockerHub
+        if: needs.build-base.outputs.push == 'true'
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERIO_USERNAME }}
+          password: ${{ secrets.DOCKERIO_PASSWORD }}
+      -
         name: Build ${{ matrix.target }}
-        run: |
-          docker buildx bake --progress=plain \
-            "--set=*.cache-from=type=local,src=/tmp/.binfmt-cache/${{ matrix.target }}" \
-            "--set=*.cache-to=type=local,dest=/tmp/.binfmt-cache/${{ matrix.target }}-new" \
-            ${{ matrix.target }}
+        uses: docker/bake-action@v1
+        with:
+          targets: ${{ matrix.target }}
+          push: ${{ needs.build-base.outputs.push }}
+          set: |
+            *.cache-from=type=local,src=/tmp/.binfmt-cache/${{ matrix.target }}
+            *.cache-to=type=local,dest=/tmp/.binfmt-cache/${{ matrix.target }}-new
         env:
-          NAME_SUFFIX: ${{ needs.build-base.outputs.name_suffix }}
+          TAG: ${{ needs.build-base.outputs.tag }}
       -
         # FIXME: Temp fix for https://github.com/moby/buildkit/issues/1850
         name: Move cache
         run: |
           rm -rf /tmp/.binfmt-cache/${{ matrix.target }}
           mv /tmp/.binfmt-cache/${{ matrix.target }}-new /tmp/.binfmt-cache/${{ matrix.target }}
-
-  publish:
-    runs-on: ubuntu-latest
-    needs: [ validate, build-base, build ]
-    if: needs.build-base.outputs.push == 'true'
-    strategy:
-      fail-fast: true
-      matrix:
-        target:
-          - mainline-all
-          - buildkit-helper-all
-    steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v2
-      -
-        name: Cache
-        uses: actions/cache@v2
-        with:
-          path: /tmp/.binfmt-cache
-          key: ${{ runner.os }}-binfmt-${{ matrix.target }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-binfmt-${{ matrix.target }}-
-            ${{ runner.os }}-binfmt-
-      -
-        name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-      -
-        name: Login to DockerHub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKERIO_USERNAME }}
-          password: ${{ secrets.DOCKERIO_PASSWORD }}
-      -
-        name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
-      -
-        name: Publish ${{ matrix.target }}
-        run: |
-          docker buildx bake --push --progress=plain \
-            "--set=*.cache-from=type=local,src=/tmp/.binfmt-cache/${{ matrix.target }}" \
-            ${{ matrix.target }}
-        env:
-          NAME_SUFFIX: ${{ needs.build-base.outputs.name_suffix }}
