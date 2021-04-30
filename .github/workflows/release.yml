@@ -103,6 +103,14 @@ jobs:
           QEMU_REPO: ${{ steps.prep.outputs.repo }}
           QEMU_VERSION: ${{ steps.prep.outputs.ref }}
       -
+        name: Create Git tag
+        if: github.event.inputs.dry-run != 'true'
+        run: |
+          git tag ${{ steps.prep.outputs.git_tag }}
+          git push origin ${{ steps.prep.outputs.git_tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      -
         name: Create Release
         uses: softprops/action-gh-release@v1
         if: github.event.inputs.dry-run != 'true'
