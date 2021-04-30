@@ -49,10 +49,10 @@ jobs:
           fi
           if [ "${{ github.event.inputs.target }}" = "mainline" ]; then
             TAG_PREFIX=qemu-
-            GIT_TAG=deploy/${TAG}-${RELEASE_NUM}
+            GIT_TAG=deploy/${{ github.event.inputs.qemu_version }}-${{ github.run_number }}
           else
-            TAG_PREFIX=buildkit-
-            GIT_TAG=${{ github.event.inputs.target }}/${TAG}-${RELEASE_NUM}
+            TAG_PREFIX=${{ github.event.inputs.target }}-
+            GIT_TAG=${{ github.event.inputs.target }}/${{ github.event.inputs.qemu_version }}-${{ github.run_number }}
           fi
           echo ::set-output name=repo::${REPO}
           echo ::set-output name=ref::${REF}
