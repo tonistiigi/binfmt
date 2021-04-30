@@ -56,7 +56,6 @@ jobs:
           fi
           echo ::set-output name=repo::${REPO}
           echo ::set-output name=ref::${REF}
-          echo ::set-output name=version::${{ github.event.inputs.qemu_version }}
           echo ::set-output name=tag_prefix::${TAG_PREFIX}
           echo ::set-output name=git_tag::${GIT_TAG}
       -
@@ -112,7 +111,7 @@ jobs:
           tag_name: ${{ steps.prep.outputs.git_tag }}
           prerelease: ${{ github.event.inputs.latest != 'true' }}
           body: |
-            QEMU [${{ steps.prep.outputs.version }}](${{ steps.prep.outputs.repo }}/tree/${{ steps.prep.outputs.ref }}) - `${{ steps.prep.outputs.ref }}`
+            QEMU [${{ github.event.inputs.qemu_version }}](${{ steps.prep.outputs.repo }}/tree/${{ steps.prep.outputs.ref }}) - `${{ steps.prep.outputs.ref }}`
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       -
