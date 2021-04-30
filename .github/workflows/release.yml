@@ -103,20 +103,12 @@ jobs:
           QEMU_REPO: ${{ steps.prep.outputs.repo }}
           QEMU_VERSION: ${{ steps.prep.outputs.ref }}
       -
-        name: Create Git tag
-        if: github.event.inputs.dry-run != 'true'
-        run: |
-          git tag ${{ steps.prep.outputs.git_tag }}
-          git push origin ${{ steps.prep.outputs.git_tag }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      -
         name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: actions/create-release@v1
         if: github.event.inputs.dry-run != 'true'
         with:
-          name: ${{ steps.prep.outputs.git_tag }}
           tag_name: ${{ steps.prep.outputs.git_tag }}
+          release_name: ${{ steps.prep.outputs.git_tag }}
           prerelease: ${{ github.event.inputs.latest != 'true' }}
           body: |
             QEMU [${{ github.event.inputs.qemu_version }}](${{ steps.prep.outputs.repo }}/tree/${{ steps.prep.outputs.ref }}) - `${{ steps.prep.outputs.ref }}`
