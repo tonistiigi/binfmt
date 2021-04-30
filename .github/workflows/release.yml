@@ -68,8 +68,8 @@ jobs:
           tags: |
             type=raw,value=${{ steps.prep.outputs.tag_prefix }}${{ github.event.inputs.qemu_version }}-${{ github.run_number }}
             type=raw,value=${{ steps.prep.outputs.tag_prefix }}${{ github.event.inputs.qemu_version }}
-            type=raw,value=${{ steps.prep.outputs.tag_prefix }}latest,enable=${{ github.event.inputs.target != 'mainline' }}
-            type=raw,value=latest,enable=${{ github.event.inputs.target == 'mainline' }}
+            type=raw,value=${{ steps.prep.outputs.tag_prefix }}latest,enable=${{ github.event.inputs.target != 'mainline' && github.event.inputs.latest == 'true' }}
+            type=raw,value=latest,enable=${{ github.event.inputs.target == 'mainline' && github.event.inputs.latest == 'true' }}
           flavor: |
             latest=false
           labels: |
