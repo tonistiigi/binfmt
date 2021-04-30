@@ -90,9 +90,13 @@ FROM --platform=$BUILDPLATFORM golang:1.15-alpine AS binfmt
 COPY --from=xgo / /
 ENV CGO_ENABLED=0
 ARG TARGETPLATFORM
+ARG QEMU_VERSION
 WORKDIR /src
+RUN apk add --no-cache git
 RUN --mount=target=. \
-  TARGETPLATFORM=$TARGETPLATFORM go build -o /go/bin/binfmt ./cmd/binfmt
+  TARGETPLATFORM=$TARGETPLATFORM go build \
+    -ldflags "-X main.revision=$(git rev-parse --short HEAD) -X main.qemuVersion=${QEMU_VERSION}" \
+    -o /go/bin/binfmt ./cmd/binfmt
 
 FROM scratch AS binaries
 ARG BINARY_PREFIX

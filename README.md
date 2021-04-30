@@ -67,6 +67,15 @@ You can also uninstall all archs for a specific emulator:
 docker run --privileged --rm tonistiigi/binfmt --uninstall qemu-*
 ```
 
+## Display version
+
+```bash
+docker run --privileged --rm tonistiigi/binfmt --version
+```
+```
+binfmt/9a44d27 qemu/v6.0.0 go/1.15.11
+```
+
 ## Development commands
 
 ```bash
