@@ -110,6 +110,7 @@ jobs:
         with:
           name: ${{ steps.prep.outputs.git_tag }}
           tag_name: ${{ steps.prep.outputs.git_tag }}
+          prerelease: ${{ github.event.inputs.latest != 'true' }}
           body: |
             QEMU [${{ steps.prep.outputs.version }}](${{ steps.prep.outputs.repo }}/tree/${{ steps.prep.outputs.ref }}) - `${{ steps.prep.outputs.ref }}`
         env:
