@@ -98,6 +98,8 @@ jobs:
             ${{ steps.meta.outputs.bake-file }}
           targets: ${{ github.event.inputs.target }}-all
           push: ${{ github.event.inputs.dry-run != 'true' }}
+          set: |
+            *.cache-from=${{ env.REPO_SLUG }}:${{ steps.prep.outputs.tag_prefix }}${{ github.event.inputs.qemu_version }},${{ env.REPO_SLUG }}:master
         env:
           REPO: ${{ env.REPO_SLUG }}
           QEMU_REPO: ${{ steps.prep.outputs.repo }}
