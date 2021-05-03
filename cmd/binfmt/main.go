@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 
@@ -20,12 +21,14 @@ var (
 	mount       string
 	toInstall   string
 	toUninstall string
+	flVersion   bool
 )
 
 func init() {
 	flag.StringVar(&mount, "mount", "/proc/sys/fs/binfmt_misc", "binfmt_misc mount point")
 	flag.StringVar(&toInstall, "install", "", "architectures to install")
 	flag.StringVar(&toUninstall, "uninstall", "", "architectures to uninstall")
+	flag.BoolVar(&flVersion, "version", false, "display version")
 }
 
 func uninstall(arch string) error {
@@ -155,14 +158,19 @@ func parseUninstall(in string) (out []string) {
 }
 
 func main() {
+	log.SetFlags(0) // no timestamps in logs
 	flag.Parse()
-
 	if err := run(); err != nil {
 		log.Printf("error: %+v", err)
 	}
 }
 
 func run() error {
+	if flVersion {
+		log.Printf("binfmt/%s qemu/%s go/%s", revision, qemuVersion, runtime.Version()[2:])
+		return nil
+	}
+
 	if _, err := os.Stat(filepath.Join(mount, "status")); err != nil {
 		if err := syscall.Mount("binfmt_misc", mount, "binfmt_misc", 0, ""); err != nil {
 			return errors.Wrapf(err, "cannot mount binfmt_misc filesystem at %s", mount)
