@@ -113,7 +113,8 @@ jobs:
           release_name: ${{ steps.prep.outputs.git_tag }}
           prerelease: ${{ github.event.inputs.latest != 'true' }}
           body: |
-            QEMU [${{ github.event.inputs.qemu_version }}](${{ steps.prep.outputs.repo }}/tree/${{ steps.prep.outputs.ref }}) - `${{ steps.prep.outputs.ref }}`
+            * logs: ${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}
+            * qemu repo: ${{ steps.prep.outputs.repo }}/tree/${{ steps.prep.outputs.ref }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       -
