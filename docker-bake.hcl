@@ -47,7 +47,7 @@ target "mainline" {
   inherits = ["meta-helper"]
   args = {
     QEMU_REPO = trimspace(getdef("${QEMU_REPO}", "https://github.com/qemu/qemu"))
-    QEMU_VERSION = trimspace(getdef("${QEMU_VERSION}", "v5.2.0"))
+    QEMU_VERSION = trimspace(getdef("${QEMU_VERSION}", "v6.0.0"))
   }
   cache-to = ["type=inline"]
   cache-from = ["${REPO}:master"]
