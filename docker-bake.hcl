@@ -79,3 +79,13 @@ target "buildkit-test" {
   cache-to = []
   tags = []
 }
+
+target "archive" {
+  inherits = ["mainline"]
+  target = "archive"
+  output = ["./bin"]
+}
+
+target "archive-all" {
+  inherits = ["archive", "all-arch"]
+}
