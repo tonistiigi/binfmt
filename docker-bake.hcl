@@ -8,7 +8,7 @@ variable "QEMU_VERSION" {
   default = ""
 }
 
-// Special target: https://github.com/crazy-max/ghaction-docker-meta#bake-definition
+// Special target: https://github.com/docker/metadata-action#bake-definition
 target "meta-helper" {
   tags = ["${REPO}:test"]
 }
