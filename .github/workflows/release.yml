@@ -91,6 +91,7 @@ jobs:
           username: ${{ secrets.DOCKERIO_USERNAME }}
           password: ${{ secrets.DOCKERIO_PASSWORD }}
       -
+        name: Build image
         uses: docker/bake-action@v1
         with:
           files: |
@@ -99,19 +100,41 @@ jobs:
           targets: ${{ github.event.inputs.target }}-all
           push: ${{ github.event.inputs.dry-run != 'true' }}
           set: |
-            *.cache-from=${{ env.REPO_SLUG }}:${{ steps.prep.outputs.tag_prefix }}${{ github.event.inputs.qemu_version }},${{ env.REPO_SLUG }}:master
+            *.cache-from=${{ env.REPO_SLUG }}:${{ steps.prep.outputs.tag_prefix }}${{ github.event.inputs.qemu_version }},${{ env.REPO_SLUG }}:${{ steps.prep.outputs.tag_prefix }}master
         env:
           REPO: ${{ env.REPO_SLUG }}
           QEMU_REPO: ${{ steps.prep.outputs.repo }}
           QEMU_VERSION: ${{ steps.prep.outputs.ref }}
       -
+        name: Build artifacts
+        uses: docker/bake-action@v1
+        if: github.event.inputs.target == 'mainline'
+        with:
+          files: |
+            ./docker-bake.hcl
+            ${{ steps.meta.outputs.bake-file }}
+          targets: archive-all
+          set: |
+            *.cache-from=${{ env.REPO_SLUG }}:${{ steps.prep.outputs.tag_prefix }}${{ github.event.inputs.qemu_version }},${{ env.REPO_SLUG }}:${{ steps.prep.outputs.tag_prefix }}master
+        env:
+          REPO: ${{ env.REPO_SLUG }}
+          QEMU_REPO: ${{ steps.prep.outputs.repo }}
+          QEMU_VERSION: ${{ steps.prep.outputs.ref }}
+      -
+        name: Move artifacts
+        if: github.event.inputs.target == 'mainline'
+        run: |
+          mv ./bin/**/* ./bin/
+      -
         name: Create Release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@9729932bfb75c05ad1f6e3a729294e05abaa7001
         if: github.event.inputs.dry-run != 'true'
         with:
+          name: ${{ steps.prep.outputs.git_tag }}
           tag_name: ${{ steps.prep.outputs.git_tag }}
-          release_name: ${{ steps.prep.outputs.git_tag }}
           prerelease: ${{ github.event.inputs.latest != 'true' }}
+          files: bin/*.tar.gz
+          fail_on_unmatched_files: false
           body: |
             * logs: ${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}
             * qemu repo: ${{ steps.prep.outputs.repo }}/tree/${{ steps.prep.outputs.ref }}

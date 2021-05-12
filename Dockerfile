@@ -84,8 +84,11 @@ RUN --mount=target=.,from=src,src=/src/qemu,rw --mount=target=./install-scripts,
 ARG BINARY_PREFIX
 RUN cd /usr/bin; [ -z "$BINARY_PREFIX" ] || for f in $(ls qemu-*); do ln -s $f $BINARY_PREFIX$f; done
 
-FROM --platform=$BUILDPLATFORM tonistiigi/xx:golang@sha256:6f7d999551dd471b58f70716754290495690efa8421e0a1fcf18eb11d0c0a537 AS xgo
+FROM build AS build-archive
+RUN cd /usr/bin && mkdir -p /archive && \
+  tar czvfh "/archive/${BINARY_PREFIX}qemu_${QEMU_VERSION}_$(echo $TARGETPLATFORM | sed 's/\//-/g').tar.gz" ${BINARY_PREFIX}qemu*
 
+FROM --platform=$BUILDPLATFORM tonistiigi/xx:golang@sha256:6f7d999551dd471b58f70716754290495690efa8421e0a1fcf18eb11d0c0a537 AS xgo
 FROM --platform=$BUILDPLATFORM golang:1.16-alpine AS binfmt
 COPY --from=xgo / /
 ENV CGO_ENABLED=0
@@ -101,6 +104,9 @@ RUN --mount=target=. \
 FROM scratch AS binaries
 ARG BINARY_PREFIX
 COPY --from=build usr/bin/${BINARY_PREFIX}qemu-* /
+
+FROM scratch AS archive
+COPY --from=build-archive /archive/* /
 
 FROM --platform=$BUILDPLATFORM tonistiigi/bats-assert AS assert
 
