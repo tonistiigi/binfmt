@@ -106,3 +106,8 @@ docker run --rm tonistiigi/debian:riscv uname -a
 
 This repository also provides helper for BuildKit's automatic emulation support https://github.com/moby/buildkit/pull/1528.
 These binaries are BuildKit specific and should not be installed in kernel with `binfmt_misc`.
+
+## Licenses
+
+MIT. See `LICENSE` for more details.
+For QEMU see https://wiki.qemu.org/License
