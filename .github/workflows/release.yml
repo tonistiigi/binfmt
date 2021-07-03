@@ -41,7 +41,7 @@ jobs:
         run: |
           REPO=$(docker buildx bake --print ${{ github.event.inputs.target }} | jq --raw-output '.. | .args?.QEMU_REPO | select(.)')
           if [ "${{ github.event.inputs.qemu_repo }}" != "" ]; then
-            QEMU_REPO=${{ github.event.inputs.qemu_repo }}
+            REPO=${{ github.event.inputs.qemu_repo }}
           fi
           REF=$(docker buildx bake --print ${{ github.event.inputs.target }} | jq --raw-output '.. | .args?.QEMU_VERSION | select(.)')
           if [ "${{ github.event.inputs.qemu_ref }}" != "" ]; then
