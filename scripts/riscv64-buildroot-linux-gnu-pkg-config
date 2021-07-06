@@ -1,6 +1,0 @@
-#!/bin/sh
-basename=`basename $0`
-prefix=/usr/`echo $basename|sed s/-pkg-config//`
-PKG_CONFIG_LIBDIR=/usr/riscv64-linux-gnu/lib/pkgconfig
-export PKG_CONFIG_LIBDIR
-pkg-config --define-variable=prefix=$prefix $@

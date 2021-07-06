@@ -37,9 +37,7 @@ target "all-arch" {
     "linux/arm",
     "linux/ppc64le",
     "linux/s390x",
-    "linux/riscv64",
     "linux/386",
-    "linux/mips64le"
   ]
 }
 

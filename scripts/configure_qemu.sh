@@ -3,17 +3,16 @@
 set -e
 
 : ${QEMU_TARGETS=}
-: ${FLAG_CROSS_PREFIX=}
 
-arch="$(cross.sh arch)"
+arch="$(xx-info arch)"
 
-if [ "$arch" != "x86_64" ]; then
+if [ "$arch" != "amd64" ]; then
     QEMU_TARGETS="$QEMU_TARGETS x86_64-linux-user"
 fi
-if [ "$arch" != "aarch64" ]; then
+if [ "$arch" != "arm64" ]; then
     QEMU_TARGETS="$QEMU_TARGETS aarch64-linux-user"
 fi
-if [ "$arch" != "armv7l" ] && [ "$arch" != "armv6l" ] ; then
+if [ "$arch" != "arm" ]; then
     QEMU_TARGETS="$QEMU_TARGETS arm-linux-user"
 fi
 if [ "$arch" != "riscv64" ]; then
@@ -25,7 +24,7 @@ fi
 if [ "$arch" != "s390x" ] && [ "$arch" != "riscv64" ] ; then
     QEMU_TARGETS="$QEMU_TARGETS s390x-linux-user"
 fi
-if [ "$arch" != "i386" ] ; then
+if [ "$arch" != "386" ] ; then
     QEMU_TARGETS="$QEMU_TARGETS i386-linux-user"
 fi
 if [ "$arch" != "mips64le" ] ; then
@@ -33,10 +32,6 @@ if [ "$arch" != "mips64le" ] ; then
 fi
 if [ "$arch" != "mips64" ] ; then
     QEMU_TARGETS="$QEMU_TARGETS mips64-linux-user"
-fi
-
-if cross.sh is_cross; then 
-    FLAG_CROSS_PREFIX="--cross-prefix=$(cross.sh cross-prefix)-"
 fi
 
 set -x
@@ -67,4 +62,14 @@ set -x
   --disable-sdl \
   --disable-spice \
   --disable-tools \
-  --disable-vte $FLAG_CROSS_PREFIX --target-list="$QEMU_TARGETS"
+  --disable-vte \
+  --disable-werror \
+  --disable-debug-info \
+  --disable-glusterfs \
+  --cross-prefix=$(xx-info)- \
+  --host-cc=$(xx-clang --print-target-triple)-clang \
+  --host=$(xx-clang --print-target-triple) \
+  --build=$(TARGETPLATFORM= TARGETPAIR= xx-clang --print-target-triple) \
+  --cc=$(xx-clang --print-target-triple)-clang \
+  --extra-ldflags=-latomic \
+  --target-list="$QEMU_TARGETS"
