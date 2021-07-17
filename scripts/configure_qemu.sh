@@ -4,8 +4,10 @@ set -e
 
 : ${QEMU_TARGETS=}
 
+
 arch="$(xx-info arch)"
 
+if [ -z "$QEMU_TARGETS" ]; then
 if [ "$arch" != "amd64" ]; then
     QEMU_TARGETS="$QEMU_TARGETS x86_64-linux-user"
 fi
@@ -32,6 +34,7 @@ if [ "$arch" != "mips64le" ] ; then
 fi
 if [ "$arch" != "mips64" ] ; then
     QEMU_TARGETS="$QEMU_TARGETS mips64-linux-user"
+fi
 fi
 
 set -x

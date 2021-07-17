@@ -40,7 +40,7 @@ RUN set -e; \
 
 FROM base AS build
 ARG TARGETPLATFORM
-ARG QEMU_VERSION
+ARG QEMU_VERSION QEMU_TARGETS
 ENV AR=llvm-ar STRIP=llvm-strip
 RUN --mount=target=.,from=src,src=/src/qemu,rw --mount=target=./install-scripts,src=scripts \
   TARGETPLATFORM=${TARGETPLATFORM} configure_qemu.sh && \
