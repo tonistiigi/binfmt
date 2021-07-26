@@ -1,4 +1,4 @@
-# github.com/containerd/containerd v1.5.2
+# github.com/containerd/containerd v1.5.4
 ## explicit
 github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/log
