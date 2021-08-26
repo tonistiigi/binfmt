@@ -1,28 +1,53 @@
-# syntax=docker/dockerfile:1.2
+# syntax=docker/dockerfile:1.3-labs
 
-ARG ALPINE_BASE=alpine:3.14
+ARG ALPINE_VERSION=3.14
+ARG ALPINE_BASE=alpine:${ALPINE_VERSION}
 
-ARG QEMU_VERSION
+ARG QEMU_VERSION=head
 ARG QEMU_REPO=https://github.com/qemu/qemu
 
 # xx is a helper for cross-compilation
 FROM --platform=$BUILDPLATFORM tonistiigi/xx@sha256:56b19a5fb89b99195ec494d59ad34370d14540858c1f56c560ec1e7f2d1c177f AS xx
 
+FROM --platform=$BUILDPLATFORM ${ALPINE_BASE} AS alpine-patches
+RUN apk add --no-cache git
+ARG ALPINE_VERSION
+RUN <<eof
+  set -ex
+  git clone --depth 1 -b ${ALPINE_VERSION}-stable https://github.com/alpinelinux/aports.git
+  mkdir -p /opt/alpine-patches
+  cp -a aports/community/qemu/*.patch /opt/alpine-patches/
+  rm -rf aports
+eof
+
 FROM --platform=$BUILDPLATFORM ${ALPINE_BASE} AS src
 RUN apk add --no-cache git patch
+
+WORKDIR /src
 ARG QEMU_VERSION
 ARG QEMU_REPO
-WORKDIR /src
-RUN git clone $QEMU_REPO && \
-  git clone --depth 1 -b 3.14-stable https://github.com/alpinelinux/aports.git && \
-  cd qemu && \
-  git checkout $QEMU_VERSION && \
-  for f in  ../aports/community/qemu/*.patch; do patch -p1 < $f; done && \
-  scripts/git-submodule.sh update \
-  ui/keycodemapdb \
-  tests/fp/berkeley-testfloat-3 \
-  tests/fp/berkeley-softfloat-3 \
-  dtc slirp
+RUN git clone $QEMU_REPO && cd qemu && git checkout $QEMU_VERSION 
+COPY patches patches
+COPY --from=alpine-patches /opt/alpine-patches patches/alpine-patches
+ARG QEMU_PATCHES=cpu-max
+ARG QEMU_PATCHES_ALL=${QEMU_PATCHES},alpine-patches,zero-init-msghdr
+RUN <<eof
+  set -ex
+  # remove patches not needed for 6.1.0+
+  if [ "$(printf "$(cat qemu/VERSION)\n6.0.90" | sort -V | head -n 1)" = "6.0.90" ]; then
+    # this issue has been fixed upstream by using non-glibc specific macro
+    rm -rf patches/alpine-patches/fix-sigevent-and-sigval_t.patch || true
+    # following patches are already applied upstream
+    rm -rf patches/alpine-patches/0001-virtio-host-input-use-safe-64-bit-time-accessors-for.patch || true
+    rm -rf patches/alpine-patches/0002-virtio-user-input-use-safe-64-bit-time-accessors-for.patch || true
+    rm -rf patches/alpine-patches/CVE-2021-3527.patch || true
+  fi
+  cd qemu
+  for p in $(echo $QEMU_PATCHES_ALL | tr ',' '\n'); do
+    for f in  ../patches/$p/*.patch; do echo "apply $f"; patch -p1 < $f; done
+  done
+  scripts/git-submodule.sh update ui/keycodemapdb tests/fp/berkeley-testfloat-3 tests/fp/berkeley-softfloat-3 dtc slirp
+eof
 
 FROM --platform=$BUILDPLATFORM ${ALPINE_BASE} AS base
 RUN apk add --no-cache git clang lld python3 llvm make ninja pkgconfig glib-dev gcc musl-dev perl bash
@@ -37,7 +62,6 @@ RUN set -e; \
   [ "$(xx-info arch)" = "386" ] && XX_CC_PREFER_LINKER=ld xx-clang --setup-target-triple; \
   true
 
-
 FROM base AS build
 ARG TARGETPLATFORM
 ARG QEMU_VERSION QEMU_TARGETS
@@ -46,7 +70,7 @@ RUN --mount=target=.,from=src,src=/src/qemu,rw --mount=target=./install-scripts,
   TARGETPLATFORM=${TARGETPLATFORM} configure_qemu.sh && \
   make -j "$(getconf _NPROCESSORS_ONLN)" && \
   make install && \
-  cd /usr/bin && for f in $(ls qemu-*); do xx-verify $f; done 
+  cd /usr/bin && for f in $(ls qemu-*); do xx-verify --static $f; done
 
 ARG BINARY_PREFIX
 RUN cd /usr/bin; [ -z "$BINARY_PREFIX" ] || for f in $(ls qemu-*); do ln -s $f $BINARY_PREFIX$f; done
@@ -66,7 +90,7 @@ RUN --mount=target=. \
   TARGETPLATFORM=$TARGETPLATFORM xx-go build \
     -ldflags "-X main.revision=$(git rev-parse --short HEAD) -X main.qemuVersion=${QEMU_VERSION}" \
     -o /go/bin/binfmt ./cmd/binfmt && \
-    xx-verify /go/bin/binfmt
+    xx-verify --static /go/bin/binfmt
 
 FROM scratch AS binaries
 ARG BINARY_PREFIX
