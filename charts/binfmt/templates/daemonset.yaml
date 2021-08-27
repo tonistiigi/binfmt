@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "binfmt.fullname" . }}
+  labels:
+    {{- include "binfmt.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "binfmt.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "binfmt.selectorLabels" . | nindent 8 }}
+    spec:
+      initContainers:
+        - name: {{ .Chart.Name }}-installer
+          securityContext:
+            privileged: true
+          imagePullPolicy: Always
+          image: tonistiigi/binfmt
+          args:
+            - --install
+            - {{ .Values.formats }}
+      containers:
+        - name: {{ .Chart.Name }}-idle
+          image: busybox
+          command:
+            - tail
+            - -F
+            - whatever
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
