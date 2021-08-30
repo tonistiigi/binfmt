@@ -135,6 +135,7 @@ jobs:
           prerelease: ${{ github.event.inputs.latest != 'true' }}
           files: bin/*.tar.gz
           fail_on_unmatched_files: false
+          target_commitish: ${{ github.sha }}
           body: |
             * logs: ${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}
             * qemu repo: ${{ steps.prep.outputs.repo }}/tree/${{ steps.prep.outputs.ref }}
