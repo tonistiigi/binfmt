@@ -9,17 +9,6 @@ ARG QEMU_REPO=https://github.com/qemu/qemu
 # xx is a helper for cross-compilation
 FROM --platform=$BUILDPLATFORM tonistiigi/xx@sha256:56b19a5fb89b99195ec494d59ad34370d14540858c1f56c560ec1e7f2d1c177f AS xx
 
-FROM --platform=$BUILDPLATFORM ${ALPINE_BASE} AS alpine-patches
-RUN apk add --no-cache git
-ARG ALPINE_VERSION
-RUN <<eof
-  set -ex
-  git clone --depth 1 -b ${ALPINE_VERSION}-stable https://github.com/alpinelinux/aports.git
-  mkdir -p /opt/alpine-patches
-  cp -a aports/community/qemu/*.patch /opt/alpine-patches/
-  rm -rf aports
-eof
-
 FROM --platform=$BUILDPLATFORM ${ALPINE_BASE} AS src
 RUN apk add --no-cache git patch
 
@@ -28,19 +17,21 @@ ARG QEMU_VERSION
 ARG QEMU_REPO
 RUN git clone $QEMU_REPO && cd qemu && git checkout $QEMU_VERSION 
 COPY patches patches
-COPY --from=alpine-patches /opt/alpine-patches patches/alpine-patches
 ARG QEMU_PATCHES=cpu-max
 ARG QEMU_PATCHES_ALL=${QEMU_PATCHES},alpine-patches,zero-init-msghdr
 RUN <<eof
   set -ex
-  # remove patches not needed for 6.1.0+
-  if [ "$(printf "$(cat qemu/VERSION)\n6.0.90" | sort -V | head -n 1)" = "6.0.90" ]; then
-    # this issue has been fixed upstream by using non-glibc specific macro
-    rm -rf patches/alpine-patches/fix-sigevent-and-sigval_t.patch || true
-    # following patches are already applied upstream
-    rm -rf patches/alpine-patches/0001-virtio-host-input-use-safe-64-bit-time-accessors-for.patch || true
-    rm -rf patches/alpine-patches/0002-virtio-user-input-use-safe-64-bit-time-accessors-for.patch || true
-    rm -rf patches/alpine-patches/CVE-2021-3527.patch || true
+  if [ "${QEMU_PATCHES_ALL#*alpine-patches}" != "${QEMU_PATCHES_ALL}" ]; then
+    ver="$(cat qemu/VERSION)" 
+    for l in $(cat patches/aports.config); do
+      [ "$(printf "$ver\n$l" | sort -V | head -n 1)" != "$ver" ] && commit=$(echo $l | cut -d, -f2) && break;
+    done
+    mkdir -p aports && cd aports && git init
+    git fetch --depth 1 https://github.com/alpinelinux/aports.git "$commit"
+    git checkout FETCH_HEAD
+    mkdir -p ../patches/alpine-patches
+    cp -a community/qemu/*.patch ../patches/alpine-patches/
+    cd - && rm -rf aports
   fi
   cd qemu
   for p in $(echo $QEMU_PATCHES_ALL | tr ',' '\n'); do
@@ -56,7 +47,7 @@ ENV PATH=/qemu/install-scripts:$PATH
 WORKDIR /qemu
 
 ARG TARGETPLATFORM
-RUN xx-apk add musl-dev gcc glib-dev glib-static linux-headers zlib-static
+RUN xx-apk add --no-cache musl-dev gcc glib-dev glib-static linux-headers zlib-static
 RUN set -e; \
   [ "$(xx-info arch)" = "ppc64le" ] && XX_CC_PREFER_LINKER=ld xx-clang --setup-target-triple; \
   [ "$(xx-info arch)" = "386" ] && XX_CC_PREFER_LINKER=ld xx-clang --setup-target-triple; \
