@@ -1,8 +1,9 @@
-# syntax=docker/dockerfile:1.2
+# syntax=docker/dockerfile:1.3-labs
 
-ARG ALPINE_BASE=alpine:3.14
+ARG ALPINE_VERSION=3.14
+ARG ALPINE_BASE=alpine:${ALPINE_VERSION}
 
-ARG QEMU_VERSION
+ARG QEMU_VERSION=head
 ARG QEMU_REPO=https://github.com/qemu/qemu
 
 # xx is a helper for cross-compilation
@@ -10,19 +11,34 @@ FROM --platform=$BUILDPLATFORM tonistiigi/xx@sha256:56b19a5fb89b99195ec494d59ad3
 
 FROM --platform=$BUILDPLATFORM ${ALPINE_BASE} AS src
 RUN apk add --no-cache git patch
+
+WORKDIR /src
 ARG QEMU_VERSION
 ARG QEMU_REPO
-WORKDIR /src
-RUN git clone $QEMU_REPO && \
-  git clone --depth 1 -b 3.14-stable https://github.com/alpinelinux/aports.git && \
-  cd qemu && \
-  git checkout $QEMU_VERSION && \
-  for f in  ../aports/community/qemu/*.patch; do patch -p1 < $f; done && \
-  scripts/git-submodule.sh update \
-  ui/keycodemapdb \
-  tests/fp/berkeley-testfloat-3 \
-  tests/fp/berkeley-softfloat-3 \
-  dtc slirp
+RUN git clone $QEMU_REPO && cd qemu && git checkout $QEMU_VERSION 
+COPY patches patches
+ARG QEMU_PATCHES=cpu-max
+ARG QEMU_PATCHES_ALL=${QEMU_PATCHES},alpine-patches,zero-init-msghdr
+RUN <<eof
+  set -ex
+  if [ "${QEMU_PATCHES_ALL#*alpine-patches}" != "${QEMU_PATCHES_ALL}" ]; then
+    ver="$(cat qemu/VERSION)" 
+    for l in $(cat patches/aports.config); do
+      [ "$(printf "$ver\n$l" | sort -V | head -n 1)" != "$ver" ] && commit=$(echo $l | cut -d, -f2) && break;
+    done
+    mkdir -p aports && cd aports && git init
+    git fetch --depth 1 https://github.com/alpinelinux/aports.git "$commit"
+    git checkout FETCH_HEAD
+    mkdir -p ../patches/alpine-patches
+    cp -a community/qemu/*.patch ../patches/alpine-patches/
+    cd - && rm -rf aports
+  fi
+  cd qemu
+  for p in $(echo $QEMU_PATCHES_ALL | tr ',' '\n'); do
+    for f in  ../patches/$p/*.patch; do echo "apply $f"; patch -p1 < $f; done
+  done
+  scripts/git-submodule.sh update ui/keycodemapdb tests/fp/berkeley-testfloat-3 tests/fp/berkeley-softfloat-3 dtc slirp
+eof
 
 FROM --platform=$BUILDPLATFORM ${ALPINE_BASE} AS base
 RUN apk add --no-cache git clang lld python3 llvm make ninja pkgconfig glib-dev gcc musl-dev perl bash
@@ -31,12 +47,11 @@ ENV PATH=/qemu/install-scripts:$PATH
 WORKDIR /qemu
 
 ARG TARGETPLATFORM
-RUN xx-apk add musl-dev gcc glib-dev glib-static linux-headers zlib-static
+RUN xx-apk add --no-cache musl-dev gcc glib-dev glib-static linux-headers zlib-static
 RUN set -e; \
   [ "$(xx-info arch)" = "ppc64le" ] && XX_CC_PREFER_LINKER=ld xx-clang --setup-target-triple; \
   [ "$(xx-info arch)" = "386" ] && XX_CC_PREFER_LINKER=ld xx-clang --setup-target-triple; \
   true
-
 
 FROM base AS build
 ARG TARGETPLATFORM
@@ -46,7 +61,7 @@ RUN --mount=target=.,from=src,src=/src/qemu,rw --mount=target=./install-scripts,
   TARGETPLATFORM=${TARGETPLATFORM} configure_qemu.sh && \
   make -j "$(getconf _NPROCESSORS_ONLN)" && \
   make install && \
-  cd /usr/bin && for f in $(ls qemu-*); do xx-verify $f; done 
+  cd /usr/bin && for f in $(ls qemu-*); do xx-verify --static $f; done
 
 ARG BINARY_PREFIX
 RUN cd /usr/bin; [ -z "$BINARY_PREFIX" ] || for f in $(ls qemu-*); do ln -s $f $BINARY_PREFIX$f; done
@@ -66,7 +81,7 @@ RUN --mount=target=. \
   TARGETPLATFORM=$TARGETPLATFORM xx-go build \
     -ldflags "-X main.revision=$(git rev-parse --short HEAD) -X main.qemuVersion=${QEMU_VERSION}" \
     -o /go/bin/binfmt ./cmd/binfmt && \
-    xx-verify /go/bin/binfmt
+    xx-verify --static /go/bin/binfmt
 
 FROM scratch AS binaries
 ARG BINARY_PREFIX

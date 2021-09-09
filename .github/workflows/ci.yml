@@ -77,14 +77,39 @@ jobs:
         with:
           config: .github/buildkit.toml
       -
-        name: Test
+        name: Test buildkit
         if: matrix.target == 'buildkit'
         uses: docker/bake-action@v1
         with:
+          files: |
+            ./docker-bake.hcl
+            ${{ steps.meta.outputs.bake-file }}
           targets: buildkit-test
-      -
-        name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+      - name: Load mainline for testing
+        if: matrix.target == 'mainline'
+        uses: docker/bake-action@v1
+        with:
+          files: |
+            ./docker-bake.hcl
+            ${{ steps.meta.outputs.bake-file }}
+          targets: mainline
+          load: true
+          set: |
+            *.cache-from=type=local,src=/tmp/.binfmt-cache/${{ matrix.target }}
+            mainline.tags=tonistiigi/binfmt:test
+      - name: Test mainline
+        if: matrix.target == 'mainline'
+        run: |
+          docker run --rm --privileged tonistiigi/binfmt:test --uninstall amd64,arm64,arm,ppc64le,s390x,riscv64
+          docker run --rm --privileged tonistiigi/binfmt:test --install all
+          docker run --rm arm64v8/alpine uname -a
+          docker run --rm arm32v7/alpine uname -a
+          docker run --rm ppc64le/alpine uname -a
+          docker run --rm s390x/alpine uname -a
+          docker run --rm tonistiigi/debian:riscv uname -a
+          docker run --rm --platform=linux/s390x s390x/ubuntu apt update
+          docker run --rm --platform=linux/ppc64le ppc64le/ubuntu apt update
+          docker run --rm --platform=linux/arm64 arm64v8/ubuntu apt update
       -
         name: Login to DockerHub
         if: startsWith(github.ref, 'refs/heads/')
@@ -92,6 +117,9 @@ jobs:
         with:
           username: ${{ secrets.DOCKERIO_USERNAME }}
           password: ${{ secrets.DOCKERIO_PASSWORD }}
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
       -
         name: Build ${{ matrix.target }}
         uses: docker/bake-action@v1

@@ -2,22 +2,15 @@ variable "REPO" {
   default = "tonistiigi/binfmt"
 }
 variable "QEMU_REPO" {
-  default = ""
+  default = "https://github.com/qemu/qemu"
 }
 variable "QEMU_VERSION" {
-  default = ""
+  default = "v6.1.0"
 }
 
 // Special target: https://github.com/docker/metadata-action#bake-definition
 target "meta-helper" {
   tags = ["${REPO}:test"]
-}
-
-function "getdef" {
-  params = [val, default]
-  result = <<-EOT
-    %{ if val != "" }${val}%{ else }${default}%{ endif }
-  EOT
 }
 
 group "default" {
@@ -45,8 +38,8 @@ target "all-arch" {
 target "mainline" {
   inherits = ["meta-helper"]
   args = {
-    QEMU_REPO = trimspace(getdef("${QEMU_REPO}", "https://github.com/qemu/qemu"))
-    QEMU_VERSION = trimspace(getdef("${QEMU_VERSION}", "v6.0.0"))
+    QEMU_REPO = QEMU_REPO
+    QEMU_VERSION = QEMU_VERSION
   }
   cache-to = ["type=inline"]
   cache-from = ["${REPO}:master"]
@@ -57,13 +50,11 @@ target "mainline-all" {
 }
 
 target "buildkit" {
-  inherits = ["meta-helper"]
+  inherits = ["mainline"]
   args = {
-    QEMU_REPO = trimspace(getdef("${QEMU_REPO}", "https://github.com/crazy-max/qemu"))
-    QEMU_VERSION = trimspace(getdef("${QEMU_VERSION}", "be9b8cdfb3a8da33657a6df82e66b2601fe8a310"))
     BINARY_PREFIX = "buildkit-"
+    QEMU_PATCHES = "cpu-max,buildkit-direct-execve-v6.1"
   }
-  cache-to = ["type=inline"]
   cache-from = ["${REPO}:buildkit-master"]
   target = "binaries"
 }
