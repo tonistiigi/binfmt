@@ -66,10 +66,6 @@ RUN --mount=target=.,from=src,src=/src/qemu,rw --mount=target=./install-scripts,
 ARG BINARY_PREFIX
 RUN cd /usr/bin; [ -z "$BINARY_PREFIX" ] || for f in $(ls qemu-*); do ln -s $f $BINARY_PREFIX$f; done
 
-FROM build AS build-archive
-RUN cd /usr/bin && mkdir -p /archive && \
-  tar czvfh "/archive/${BINARY_PREFIX}qemu_${QEMU_VERSION}_$(echo $TARGETPLATFORM | sed 's/\//-/g').tar.gz" ${BINARY_PREFIX}qemu*
-
 FROM --platform=$BUILDPLATFORM golang:1.16-alpine AS binfmt
 COPY --from=xx / /
 ENV CGO_ENABLED=0
@@ -82,6 +78,12 @@ RUN --mount=target=. \
     -ldflags "-X main.revision=$(git rev-parse --short HEAD) -X main.qemuVersion=${QEMU_VERSION}" \
     -o /go/bin/binfmt ./cmd/binfmt && \
     xx-verify --static /go/bin/binfmt
+
+FROM build AS build-archive
+COPY --from=binfmt /go/bin/binfmt /usr/bin/binfmt
+RUN cd /usr/bin && mkdir -p /archive && \
+  tar czvfh "/archive/${BINARY_PREFIX}qemu_${QEMU_VERSION}_$(echo $TARGETPLATFORM | sed 's/\//-/g').tar.gz" ${BINARY_PREFIX}qemu* && \
+  tar czvfh "/archive/binfmt_$(echo $TARGETPLATFORM | sed 's/\//-/g').tar.gz" binfmt
 
 FROM scratch AS binaries
 ARG BINARY_PREFIX
