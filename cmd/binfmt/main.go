@@ -71,17 +71,25 @@ func install(arch string) error {
 	if v := os.Getenv("QEMU_PRESERVE_PARENT"); v != "" {
 		flags += "P"
 	}
+	binaryBasename := cfg.binary
+	if binaryPrefix := os.Getenv("QEMU_BINARY_PREFIX"); binaryPrefix != "" {
+		if strings.ContainsRune(binaryPrefix, os.PathSeparator) {
+			return errors.New("binary prefix must not contain path separator (Hint: set $QEMU_BINARY_PATH to specify the directory)")
+		}
+		binaryBasename = binaryPrefix + binaryBasename
+	}
+	binaryFullpath := filepath.Join(binaryPath, binaryBasename)
 
-	line := fmt.Sprintf(":%s:M:0:%s:%s:%s:%s", cfg.binary, cfg.magic, cfg.mask, filepath.Join(binaryPath, cfg.binary), flags)
+	line := fmt.Sprintf(":%s:M:0:%s:%s:%s:%s", binaryBasename, cfg.magic, cfg.mask, binaryFullpath, flags)
 
 	// short writes should not occur on sysfs, cannot usefully recover
 	_, err = file.Write([]byte(line))
 	if err != nil {
 		e, ok := err.(*os.PathError)
 		if ok && e.Err == syscall.EEXIST {
-			return errors.Errorf("%s already registered", cfg.binary)
+			return errors.Errorf("%s already registered", binaryBasename)
 		}
-		return errors.Errorf("cannot write to %s: %s", register, err)
+		return errors.Errorf("cannot register %q to %s: %s", binaryFullpath, register, err)
 	}
 	return nil
 }
