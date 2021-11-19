@@ -1,5 +1,7 @@
 # syntax=docker/dockerfile:1.3-labs
 
+ARG GO_VERSION=1.17
+
 ARG ALPINE_VERSION=3.14
 ARG ALPINE_BASE=alpine:${ALPINE_VERSION}
 
@@ -15,14 +17,14 @@ RUN apk add --no-cache git patch
 WORKDIR /src
 ARG QEMU_VERSION
 ARG QEMU_REPO
-RUN git clone $QEMU_REPO && cd qemu && git checkout $QEMU_VERSION 
+RUN git clone $QEMU_REPO && cd qemu && git checkout $QEMU_VERSION
 COPY patches patches
 ARG QEMU_PATCHES=cpu-max
 ARG QEMU_PATCHES_ALL=${QEMU_PATCHES},alpine-patches,zero-init-msghdr
 RUN <<eof
   set -ex
   if [ "${QEMU_PATCHES_ALL#*alpine-patches}" != "${QEMU_PATCHES_ALL}" ]; then
-    ver="$(cat qemu/VERSION)" 
+    ver="$(cat qemu/VERSION)"
     for l in $(cat patches/aports.config); do
       [ "$(printf "$ver\n$l" | sort -V | head -n 1)" != "$ver" ] && commit=$(echo $l | cut -d, -f2) && break;
     done
@@ -66,7 +68,7 @@ RUN --mount=target=.,from=src,src=/src/qemu,rw --mount=target=./install-scripts,
 ARG BINARY_PREFIX
 RUN cd /usr/bin; [ -z "$BINARY_PREFIX" ] || for f in $(ls qemu-*); do ln -s $f $BINARY_PREFIX$f; done
 
-FROM --platform=$BUILDPLATFORM golang:1.16-alpine AS binfmt
+FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS binfmt
 COPY --from=xx / /
 ENV CGO_ENABLED=0
 ARG TARGETPLATFORM
@@ -94,7 +96,7 @@ COPY --from=build-archive /archive/* /
 
 FROM --platform=$BUILDPLATFORM tonistiigi/bats-assert AS assert
 
-FROM golang:1.16-alpine AS buildkit-test
+FROM golang:${GO_VERSION}-alpine AS buildkit-test
 RUN apk add --no-cache bash bats
 WORKDIR /work
 COPY --from=assert . .

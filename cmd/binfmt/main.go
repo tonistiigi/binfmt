@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -32,13 +31,13 @@ func init() {
 }
 
 func uninstall(arch string) error {
-	fis, err := ioutil.ReadDir(mount)
+	fis, err := os.ReadDir(mount)
 	if err != nil {
 		return err
 	}
 	for _, fi := range fis {
 		if fi.Name() == arch || strings.HasSuffix(fi.Name(), "-"+arch) {
-			return ioutil.WriteFile(filepath.Join(mount, fi.Name()), []byte("-1"), 0600)
+			return os.WriteFile(filepath.Join(mount, fi.Name()), []byte("-1"), 0600)
 		}
 	}
 	return errors.Errorf("not found")
@@ -95,7 +94,7 @@ func install(arch string) error {
 }
 
 func printStatus() error {
-	fis, err := ioutil.ReadDir(mount)
+	fis, err := os.ReadDir(mount)
 	if err != nil {
 		return err
 	}
@@ -104,7 +103,7 @@ func printStatus() error {
 		if f.Name() == "register" || f.Name() == "status" {
 			continue
 		}
-		dt, err := ioutil.ReadFile(filepath.Join(mount, f.Name()))
+		dt, err := os.ReadFile(filepath.Join(mount, f.Name()))
 		if err != nil {
 			return err
 		}
