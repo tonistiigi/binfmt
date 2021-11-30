@@ -1,0 +1,88 @@
+From 205393255b9e8b1e8e03f9ab7cf169694ea16e79 Mon Sep 17 00:00:00 2001
+From: Tonis Tiigi <tonistiigi@gmail.com>
+Date: Tue, 30 Nov 2021 12:43:32 -0800
+Subject: [PATCH] linux-user: add sched_getattr support
+
+Signed-off-by: Tonis Tiigi <tonistiigi@gmail.com>
+---
+ linux-user/syscall.c | 50 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 50 insertions(+)
+
+diff --git a/linux-user/syscall.c b/linux-user/syscall.c
+index 544f5b662f..c001d5f136 100644
+--- a/linux-user/syscall.c
++++ b/linux-user/syscall.c
+@@ -140,6 +140,31 @@
+ #include "fd-trans.h"
+ #include "tcg/tcg.h"
+ 
++// we can not include /usr/include/linux/sched/types.h becuse
++// it conflicts with libc headers but libc does not define sched_attr
++struct sched_attr {
++	__u32 size;
++
++	__u32 sched_policy;
++	__u64 sched_flags;
++
++	/* SCHED_NORMAL, SCHED_BATCH */
++	__s32 sched_nice;
++
++	/* SCHED_FIFO, SCHED_RR */
++	__u32 sched_priority;
++
++	/* SCHED_DEADLINE */
++	__u64 sched_runtime;
++	__u64 sched_deadline;
++	__u64 sched_period;
++
++	/* Utilization hints */
++	__u32 sched_util_min;
++	__u32 sched_util_max;
++
++};
++
+ #ifndef CLONE_IO
+ #define CLONE_IO                0x80000000      /* Clone io context */
+ #endif
+@@ -337,6 +362,8 @@ _syscall3(int, sys_sched_getaffinity, pid_t, pid, unsigned int, len,
+ #define __NR_sys_sched_setaffinity __NR_sched_setaffinity
+ _syscall3(int, sys_sched_setaffinity, pid_t, pid, unsigned int, len,
+           unsigned long *, user_mask_ptr);
++#define __NR_sys_sched_getattr __NR_sched_getattr
++_syscall4(int, sys_sched_getattr, pid_t, pid, struct sched_attr *, attr, unsigned int, size, unsigned int, flags);
+ #define __NR_sys_getcpu __NR_getcpu
+ _syscall3(int, sys_getcpu, unsigned *, cpu, unsigned *, node, void *, tcache);
+ _syscall4(int, reboot, int, magic1, int, magic2, unsigned int, cmd,
+@@ -10587,6 +10614,29 @@ static abi_long do_syscall1(void *cpu_env, int num, abi_long arg1,
+             unlock_user_struct(target_schp, arg3, 0);
+             return get_errno(sched_setscheduler(arg1, arg2, &schp));
+         }
++    case TARGET_NR_sched_getattr:
++        {
++            struct sched_attr *target_scha;
++            struct sched_attr scha;
++            if (arg2 == 0) {
++                return -TARGET_EINVAL;
++            }
++            ret = get_errno(sys_sched_getattr(arg1, &scha, arg3, arg4));
++            if (!is_error(ret)) {
++                if (!lock_user_struct(VERIFY_WRITE, target_scha, arg2, 1))
++                    return -TARGET_EFAULT;
++                target_scha->size = scha.size;
++                target_scha->sched_policy = scha.sched_policy;
++                target_scha->sched_policy = scha.sched_policy;
++                target_scha->sched_nice = scha.sched_nice;
++                target_scha->sched_priority = scha.sched_priority;
++                target_scha->sched_runtime = scha.sched_runtime;
++                target_scha->sched_deadline = scha.sched_deadline;
++                target_scha->sched_period = scha.sched_period;
++                unlock_user_struct(target_scha, arg2, 1);
++            }
++            return ret;
++        }
+     case TARGET_NR_sched_getscheduler:
+         return get_errno(sched_getscheduler(arg1));
+     case TARGET_NR_sched_yield:
+-- 
+2.30.1 (Apple Git-130)
+
