@@ -3,14 +3,14 @@
 github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/log
 github.com/containerd/containerd/platforms
-# github.com/golang/protobuf v1.5.0
+# github.com/golang/protobuf v1.5.2
 ## explicit; go 1.9
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
-# github.com/moby/buildkit v0.8.3
+# github.com/moby/buildkit v0.9.2
 ## explicit; go 1.13
 github.com/moby/buildkit/util/archutil
 # github.com/opencontainers/go-digest v1.0.0
@@ -34,7 +34,7 @@ golang.org/x/sys/windows
 # google.golang.org/genproto v0.0.0-20201110150050-8816d57aaa9a
 ## explicit; go 1.11
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.33.2
+# google.golang.org/grpc v1.38.0
 ## explicit; go 1.11
 google.golang.org/grpc/codes
 google.golang.org/grpc/internal/status
