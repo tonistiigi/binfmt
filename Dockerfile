@@ -20,7 +20,7 @@ ARG QEMU_REPO
 RUN git clone $QEMU_REPO && cd qemu && git checkout $QEMU_VERSION
 COPY patches patches
 ARG QEMU_PATCHES=cpu-max
-ARG QEMU_PATCHES_ALL=${QEMU_PATCHES},alpine-patches,zero-init-msghdr
+ARG QEMU_PATCHES_ALL=${QEMU_PATCHES},alpine-patches,zero-init-msghdr,sched
 RUN <<eof
   set -ex
   if [ "${QEMU_PATCHES_ALL#*alpine-patches}" != "${QEMU_PATCHES_ALL}" ]; then
