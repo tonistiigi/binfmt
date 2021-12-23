@@ -114,7 +114,11 @@ func SchedGetAttr(pid int) (SchedAttr, error) {
 
 func SchedSetAttr(pid int, attr SchedAttr, flags SchedFlag) error {
 	attr.Size = uint32(unsafe.Sizeof(attr))
-	_, _, e1 := unix.Syscall(unix.SYS_SCHED_SETATTR, uintptr(pid), uintptr(unsafe.Pointer(&attr)), uintptr(flags))
+	return schedSetAttr(pid, unsafe.Pointer(&attr), flags)
+}
+
+func schedSetAttr(pid int, attr unsafe.Pointer, flags SchedFlag) error {
+	_, _, e1 := unix.Syscall(unix.SYS_SCHED_SETATTR, uintptr(pid), uintptr(attr), uintptr(flags))
 	if e1 != 0 {
 		return syscall.Errno(e1)
 	}
