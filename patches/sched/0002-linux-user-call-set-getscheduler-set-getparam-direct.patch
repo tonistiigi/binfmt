@@ -1,6 +1,6 @@
-From e50adaa57c74e24db012c6384f1f5c664e0c0d0b Mon Sep 17 00:00:00 2001
+From 9310e9d83365813460325cebebfb1049c398a904 Mon Sep 17 00:00:00 2001
 From: Tonis Tiigi <tonistiigi@gmail.com>
-Date: Fri, 3 Dec 2021 23:12:59 -0800
+Date: Wed, 22 Dec 2021 22:47:28 -0800
 Subject: [PATCH 2/2] linux-user: call set/getscheduler set/getparam directly
 
 There seems to be difference in syscall and libc definition of these
@@ -10,30 +10,47 @@ not the libc that was used to build QEMU.
 
 Signed-off-by: Tonis Tiigi <tonistiigi@gmail.com>
 ---
- linux-user/syscall.c | 16 ++++++++++++----
- 1 file changed, 12 insertions(+), 4 deletions(-)
+ linux-user/syscall.c      | 34 ++++++++++++++++++++++++----------
+ linux-user/syscall_defs.h |  4 ++++
+ 2 files changed, 28 insertions(+), 10 deletions(-)
 
 diff --git a/linux-user/syscall.c b/linux-user/syscall.c
-index 10965bbe4d..7010263874 100644
+index 1b8415c8a3..30962155a6 100644
 --- a/linux-user/syscall.c
 +++ b/linux-user/syscall.c
-@@ -343,6 +343,14 @@ _syscall3(int, sys_sched_setaffinity, pid_t, pid, unsigned int, len,
- _syscall4(int, sys_sched_getattr, pid_t, pid, struct sched_attr *, attr, unsigned int, size, unsigned int, flags);
+@@ -359,6 +359,17 @@ _syscall4(int, sys_sched_getattr, pid_t, pid, struct sched_attr *, attr,
  #define __NR_sys_sched_setattr __NR_sched_setattr
- _syscall3(int, sys_sched_setattr, pid_t, pid, struct sched_attr *, attr, unsigned int, flags);
+ _syscall3(int, sys_sched_setattr, pid_t, pid, struct sched_attr *, attr,
+           unsigned int, flags);
 +#define __NR_sys_sched_getscheduler __NR_sched_getscheduler
 +_syscall1(int, sys_sched_getscheduler, pid_t, pid);
 +#define __NR_sys_sched_setscheduler __NR_sched_setscheduler
-+_syscall3(int, sys_sched_setscheduler, pid_t, pid, int, policy, const struct sched_param *, param);
++_syscall3(int, sys_sched_setscheduler, pid_t, pid, int, policy,
++          const struct sched_param *, param);
 +#define __NR_sys_sched_getparam __NR_sched_getparam
-+_syscall2(int, sys_sched_getparam, pid_t, pid, struct sched_param *, param);
++_syscall2(int, sys_sched_getparam, pid_t, pid,
++          struct sched_param *, param);
 +#define __NR_sys_sched_setparam __NR_sched_setparam
-+_syscall2(int, sys_sched_setparam, pid_t, pid, const struct sched_param *, param);
++_syscall2(int, sys_sched_setparam, pid_t, pid,
++          const struct sched_param *, param);
  #define __NR_sys_getcpu __NR_getcpu
  _syscall3(int, sys_getcpu, unsigned *, cpu, unsigned *, node, void *, tcache);
  _syscall4(int, reboot, int, magic1, int, magic2, unsigned int, cmd,
-@@ -10563,7 +10571,7 @@ static abi_long do_syscall1(void *cpu_env, int num, abi_long arg1,
+@@ -10587,30 +10598,32 @@ static abi_long do_syscall1(void *cpu_env, int num, abi_long arg1,
+         return ret;
+     case TARGET_NR_sched_setparam:
+         {
+-            struct sched_param *target_schp;
++            struct target_sched_param *target_schp;
+             struct sched_param schp;
+ 
+             if (arg2 == 0) {
+                 return -TARGET_EINVAL;
+             }
+-            if (!lock_user_struct(VERIFY_READ, target_schp, arg2, 1))
++            if (!lock_user_struct(VERIFY_READ, target_schp, arg2, 1)) {
                  return -TARGET_EFAULT;
++            }
              schp.sched_priority = tswap32(target_schp->sched_priority);
              unlock_user_struct(target_schp, arg2, 0);
 -            return get_errno(sched_setparam(arg1, &schp));
@@ -41,17 +58,37 @@ index 10965bbe4d..7010263874 100644
          }
      case TARGET_NR_sched_getparam:
          {
-@@ -10573,7 +10581,7 @@ static abi_long do_syscall1(void *cpu_env, int num, abi_long arg1,
+-            struct sched_param *target_schp;
++            struct target_sched_param *target_schp;
+             struct sched_param schp;
+ 
              if (arg2 == 0) {
                  return -TARGET_EINVAL;
              }
 -            ret = get_errno(sched_getparam(arg1, &schp));
 +            ret = get_errno(sys_sched_getparam(arg1, &schp));
              if (!is_error(ret)) {
-                 if (!lock_user_struct(VERIFY_WRITE, target_schp, arg2, 0))
+-                if (!lock_user_struct(VERIFY_WRITE, target_schp, arg2, 0))
++                if (!lock_user_struct(VERIFY_WRITE, target_schp, arg2, 0)) {
                      return -TARGET_EFAULT;
-@@ -10593,10 +10601,10 @@ static abi_long do_syscall1(void *cpu_env, int num, abi_long arg1,
++                }
+                 target_schp->sched_priority = tswap32(schp.sched_priority);
+                 unlock_user_struct(target_schp, arg2, 1);
+             }
+@@ -10618,19 +10631,20 @@ static abi_long do_syscall1(void *cpu_env, int num, abi_long arg1,
+         return ret;
+     case TARGET_NR_sched_setscheduler:
+         {
+-            struct sched_param *target_schp;
++            struct target_sched_param *target_schp;
+             struct sched_param schp;
+             if (arg3 == 0) {
+                 return -TARGET_EINVAL;
+             }
+-            if (!lock_user_struct(VERIFY_READ, target_schp, arg3, 1))
++            if (!lock_user_struct(VERIFY_READ, target_schp, arg3, 1)) {
                  return -TARGET_EFAULT;
++            }
              schp.sched_priority = tswap32(target_schp->sched_priority);
              unlock_user_struct(target_schp, arg3, 0);
 -            return get_errno(sched_setscheduler(arg1, arg2, &schp));
@@ -63,6 +100,19 @@ index 10965bbe4d..7010263874 100644
      case TARGET_NR_sched_getattr:
          {
              struct target_sched_attr *target_scha;
+diff --git a/linux-user/syscall_defs.h b/linux-user/syscall_defs.h
+index 310d6ce8ad..28b9fe9a47 100644
+--- a/linux-user/syscall_defs.h
++++ b/linux-user/syscall_defs.h
+@@ -2928,4 +2928,8 @@ struct target_sched_attr {
+     abi_uint sched_util_max;
+ };
+ 
++struct target_sched_param {
++    abi_int sched_priority;
++};
++
+ #endif
 -- 
-2.30.1 (Apple Git-130)
+2.32.0 (Apple Git-132)
 

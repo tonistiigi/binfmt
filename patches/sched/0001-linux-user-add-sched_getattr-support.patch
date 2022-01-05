@@ -1,99 +1,32 @@
-From a5684131713a125db821dad045d942b662b461b8 Mon Sep 17 00:00:00 2001
+From 243a1ccf8c4fb1bfdb3a4ad4da318e3ba6b95419 Mon Sep 17 00:00:00 2001
 From: Tonis Tiigi <tonistiigi@gmail.com>
-Date: Tue, 30 Nov 2021 12:43:32 -0800
+Date: Wed, 22 Dec 2021 22:47:27 -0800
 Subject: [PATCH 1/2] linux-user: add sched_getattr support
+
+These syscalls are not exposed by glibc. The struct type need to be
+redefined as it can't be included directly before
+https://lkml.org/lkml/2020/5/28/810 .
+
+sched_attr type can grow in future kernel versions. When client sends
+values that QEMU does not understand it will return E2BIG with same
+semantics as old kernel would so client can retry with smaller inputs.
 
 Signed-off-by: Tonis Tiigi <tonistiigi@gmail.com>
 ---
- linux-user/syscall.c      | 56 +++++++++++++++++++++++++++++++++++++++
- linux-user/syscall_defs.h | 16 +++++++++++
- 2 files changed, 72 insertions(+)
+ linux-user/syscall.c      | 123 ++++++++++++++++++++++++++++++++++++++
+ linux-user/syscall_defs.h |  14 +++++
+ 2 files changed, 137 insertions(+)
 
 diff --git a/linux-user/syscall.c b/linux-user/syscall.c
-index f1cfcc8104..10965bbe4d 100644
+index 56a3e17183..1b8415c8a3 100644
 --- a/linux-user/syscall.c
 +++ b/linux-user/syscall.c
-@@ -339,6 +339,10 @@ _syscall3(int, sys_sched_getaffinity, pid_t, pid, unsigned int, len,
+@@ -340,6 +340,25 @@ _syscall3(int, sys_sched_getaffinity, pid_t, pid, unsigned int, len,
  #define __NR_sys_sched_setaffinity __NR_sched_setaffinity
  _syscall3(int, sys_sched_setaffinity, pid_t, pid, unsigned int, len,
            unsigned long *, user_mask_ptr);
-+#define __NR_sys_sched_getattr __NR_sched_getattr
-+_syscall4(int, sys_sched_getattr, pid_t, pid, struct sched_attr *, attr, unsigned int, size, unsigned int, flags);
-+#define __NR_sys_sched_setattr __NR_sched_setattr
-+_syscall3(int, sys_sched_setattr, pid_t, pid, struct sched_attr *, attr, unsigned int, flags);
- #define __NR_sys_getcpu __NR_getcpu
- _syscall3(int, sys_getcpu, unsigned *, cpu, unsigned *, node, void *, tcache);
- _syscall4(int, reboot, int, magic1, int, magic2, unsigned int, cmd,
-@@ -10593,6 +10597,58 @@ static abi_long do_syscall1(void *cpu_env, int num, abi_long arg1,
-         }
-     case TARGET_NR_sched_getscheduler:
-         return get_errno(sched_getscheduler(arg1));
-+    case TARGET_NR_sched_getattr:
-+        {
-+            struct target_sched_attr *target_scha;
-+            struct target_sched_attr scha;
-+            if (arg2 == 0) {
-+                return -TARGET_EINVAL;
-+            }
-+            ret = get_errno(sys_sched_getattr(arg1, &scha, arg3, arg4));
-+            if (!is_error(ret)) {
-+                if (!lock_user_struct(VERIFY_WRITE, target_scha, arg2, 0))
-+                    return -TARGET_EFAULT;
-+                target_scha->size = tswap32(scha.size);
-+                target_scha->sched_policy = tswap32(scha.sched_policy);
-+                target_scha->sched_flags = tswap64(scha.sched_policy);
-+                target_scha->sched_nice = tswap32(scha.sched_nice);
-+                target_scha->sched_priority = tswap32(scha.sched_priority);
-+                target_scha->sched_runtime = tswap64(scha.sched_runtime);
-+                target_scha->sched_deadline = tswap64(scha.sched_deadline);
-+                target_scha->sched_period = tswap64(scha.sched_period);
-+                if (scha.size >= 0x38) {
-+                    target_scha->sched_util_min = tswap32(scha.sched_util_min);
-+                    target_scha->sched_util_max = tswap32(scha.sched_util_max);
-+                }
-+                unlock_user_struct(target_scha, arg2, 1);
-+            }
-+            return ret;
-+        }
-+    case TARGET_NR_sched_setattr:
-+        {
-+            struct target_sched_attr *target_scha;
-+            struct target_sched_attr scha;
-+            if (arg2 == 0) {
-+                return -TARGET_EINVAL;
-+            }
-+            if (!lock_user_struct(VERIFY_READ, target_scha, arg2, 1))
-+                return -TARGET_EFAULT;
-+            scha.size = tswap32(target_scha->size);
-+            scha.sched_policy = tswap32(target_scha->sched_policy);
-+            scha.sched_flags = tswap64(target_scha->sched_flags);
-+            scha.sched_nice = tswap32(target_scha->sched_nice);
-+            scha.sched_priority = tswap32(target_scha->sched_priority);
-+            scha.sched_runtime = tswap64(target_scha->sched_runtime);
-+            scha.sched_deadline = tswap64(target_scha->sched_deadline);
-+            scha.sched_period = tswap64(target_scha->sched_period);
-+            if (scha.size >= 0x38) {
-+                scha.sched_util_min = tswap32(target_scha->sched_util_min);
-+                scha.sched_util_max = tswap32(target_scha->sched_util_max);
-+            }
-+            
-+            unlock_user_struct(target_scha, arg2, 0);
-+            return get_errno(sys_sched_setattr(arg1, &scha, arg3));
-+        }
-     case TARGET_NR_sched_yield:
-         return get_errno(sched_yield());
-     case TARGET_NR_sched_get_priority_max:
-diff --git a/linux-user/syscall_defs.h b/linux-user/syscall_defs.h
-index 0b13975937..b1a76bb81a 100644
---- a/linux-user/syscall_defs.h
-+++ b/linux-user/syscall_defs.h
-@@ -2914,4 +2914,20 @@ struct target_statx {
-    /* 0x100 */
- };
- 
-+// we can not include /usr/include/linux/sched/types.h becuse
-+// it conflicts with libc headers but libc does not define sched_attr
-+struct target_sched_attr {
++/* sched_attr is not defined in glibc */
++struct sched_attr {
 +    uint32_t size;
 +    uint32_t sched_policy;
 +    uint64_t sched_flags;
@@ -102,12 +35,159 @@ index 0b13975937..b1a76bb81a 100644
 +    uint64_t sched_runtime;
 +    uint64_t sched_deadline;
 +    uint64_t sched_period;
-+    // 0x30
 +    uint32_t sched_util_min;
 +    uint32_t sched_util_max;
++};
++#define __NR_sys_sched_getattr __NR_sched_getattr
++_syscall4(int, sys_sched_getattr, pid_t, pid, struct sched_attr *, attr,
++          unsigned int, size, unsigned int, flags);
++#define __NR_sys_sched_setattr __NR_sched_setattr
++_syscall3(int, sys_sched_setattr, pid_t, pid, struct sched_attr *, attr,
++          unsigned int, flags);
+ #define __NR_sys_getcpu __NR_getcpu
+ _syscall3(int, sys_getcpu, unsigned *, cpu, unsigned *, node, void *, tcache);
+ _syscall4(int, reboot, int, magic1, int, magic2, unsigned int, cmd,
+@@ -558,6 +577,24 @@ const char *target_strerror(int err)
+     return strerror(target_to_host_errno(err));
+ }
+ 
++static int check_zeroed_user(abi_long addr, size_t ksize, size_t usize)
++{
++    int i;
++    uint8_t b;
++    if (usize <= ksize) {
++        return 1;
++    }
++    for (i = ksize; i < usize; i++) {
++        if (get_user_u8(b, addr + i)) {
++            return -TARGET_EFAULT;
++        }
++        if (b != 0) {
++            return 0;
++        }
++    }
++    return 1;
++}
++
+ #define safe_syscall0(type, name) \
+ static type safe_##name(void) \
+ { \
+@@ -10594,6 +10631,92 @@ static abi_long do_syscall1(void *cpu_env, int num, abi_long arg1,
+         }
+     case TARGET_NR_sched_getscheduler:
+         return get_errno(sched_getscheduler(arg1));
++    case TARGET_NR_sched_getattr:
++        {
++            struct target_sched_attr *target_scha;
++            struct sched_attr scha;
++            if (arg2 == 0) {
++                return -TARGET_EINVAL;
++            }
++            if (arg3 > sizeof(scha)) {
++                arg3 = sizeof(scha);
++            }
++            ret = get_errno(sys_sched_getattr(arg1, &scha, arg3, arg4));
++            if (!is_error(ret)) {
++                target_scha = lock_user(VERIFY_WRITE, arg2, arg3, 0);
++                if (!target_scha) {
++                    return -TARGET_EFAULT;
++                }
++                target_scha->size = tswap32(scha.size);
++                target_scha->sched_policy = tswap32(scha.sched_policy);
++                target_scha->sched_flags = tswap64(scha.sched_flags);
++                target_scha->sched_nice = tswap32(scha.sched_nice);
++                target_scha->sched_priority = tswap32(scha.sched_priority);
++                target_scha->sched_runtime = tswap64(scha.sched_runtime);
++                target_scha->sched_deadline = tswap64(scha.sched_deadline);
++                target_scha->sched_period = tswap64(scha.sched_period);
++                if (scha.size > offsetof(struct sched_attr, sched_util_min)) {
++                    target_scha->sched_util_min = tswap32(scha.sched_util_min);
++                    target_scha->sched_util_max = tswap32(scha.sched_util_max);
++                }
++                unlock_user(target_scha, arg2, arg3);
++            }
++            return ret;
++        }
++    case TARGET_NR_sched_setattr:
++        {
++            struct target_sched_attr *target_scha;
++            struct sched_attr scha;
++            uint32_t size;
++            int zeroed;
++            if (arg2 == 0) {
++                return -TARGET_EINVAL;
++            }
++            if (get_user_u32(size, arg2)) {
++                return -TARGET_EFAULT;
++            }
++            if (!size) {
++                size = offsetof(struct target_sched_attr, sched_util_min);
++            }
++            if (size < offsetof(struct target_sched_attr, sched_util_min)) {
++                if (put_user_u32(sizeof(struct target_sched_attr), arg2)) {
++                    return -TARGET_EFAULT;
++                }
++                return -TARGET_E2BIG;
++            }
++
++            zeroed = check_zeroed_user(arg2, sizeof(struct target_sched_attr), size);
++            if (zeroed < 0) {
++                return zeroed;
++            } else if (zeroed == 0) {
++                if (put_user_u32(sizeof(struct target_sched_attr), arg2)) {
++                    return -TARGET_EFAULT;
++                }
++                return -TARGET_E2BIG;
++            }
++            if (size > sizeof(struct target_sched_attr)) {
++                size = sizeof(struct target_sched_attr);
++            }
++
++            target_scha = lock_user(VERIFY_READ, arg2, size, 1);
++            if (!target_scha) {
++                return -TARGET_EFAULT;
++            }
++            scha.size = size;
++            scha.sched_policy = tswap32(target_scha->sched_policy);
++            scha.sched_flags = tswap64(target_scha->sched_flags);
++            scha.sched_nice = tswap32(target_scha->sched_nice);
++            scha.sched_priority = tswap32(target_scha->sched_priority);
++            scha.sched_runtime = tswap64(target_scha->sched_runtime);
++            scha.sched_deadline = tswap64(target_scha->sched_deadline);
++            scha.sched_period = tswap64(target_scha->sched_period);
++            if (size > offsetof(struct target_sched_attr, sched_util_min)) {
++                scha.sched_util_min = tswap32(target_scha->sched_util_min);
++                scha.sched_util_max = tswap32(target_scha->sched_util_max);
++            }
++            unlock_user(target_scha, arg2, 0);
++            return get_errno(sys_sched_setattr(arg1, &scha, arg3));
++        }
+     case TARGET_NR_sched_yield:
+         return get_errno(sched_yield());
+     case TARGET_NR_sched_get_priority_max:
+diff --git a/linux-user/syscall_defs.h b/linux-user/syscall_defs.h
+index 0b13975937..310d6ce8ad 100644
+--- a/linux-user/syscall_defs.h
++++ b/linux-user/syscall_defs.h
+@@ -2914,4 +2914,18 @@ struct target_statx {
+    /* 0x100 */
+ };
+ 
++/* from kernel's include/linux/sched/types.h */
++struct target_sched_attr {
++    abi_uint size;
++    abi_uint sched_policy;
++    abi_ullong sched_flags;
++    abi_int sched_nice;
++    abi_uint sched_priority;
++    abi_ullong sched_runtime;
++    abi_ullong sched_deadline;
++    abi_ullong sched_period;
++    abi_uint sched_util_min;
++    abi_uint sched_util_max;
 +};
 +
  #endif
 -- 
-2.30.1 (Apple Git-130)
+2.32.0 (Apple Git-132)
 

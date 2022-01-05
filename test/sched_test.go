@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"syscall"
 	"testing"
+	"unsafe"
 
 	"github.com/stretchr/testify/require"
 )
@@ -149,4 +150,41 @@ func TestSchedAttr(t *testing.T) {
 		require.Equal(t, SCHED_RR, attr.SchedPolicy)
 		require.Equal(t, 60, int(attr.SchedPriority))
 	}
+}
+
+func TestSchedAttrSize(t *testing.T) {
+	pid := os.Getpid()
+
+	dt := make([]byte, 2)
+	ptr := unsafe.Pointer(&dt[0])
+	err := schedSetAttr(pid, ptr, 0)
+	require.Error(t, err)
+	t.Logf("short read error: %v", err) // this error does not look consistent even with no emulation
+
+	dt = make([]byte, 80)
+	ptr = unsafe.Pointer(&dt[0])
+
+	err = schedSetAttr(pid, ptr, 0)
+	require.NoError(t, err) // empty size is ok for some reason
+
+	ints := (*[20]uint32)(ptr)
+	ints[0] = 8 // too small size
+
+	err = schedSetAttr(pid, ptr, 0)
+	require.Error(t, err)
+	require.True(t, errors.Is(err, syscall.E2BIG))
+	require.Equal(t, uint32(0x38), ints[0]) // expecting kernel 5.3+
+
+	ints[0] = 80 // too big but empty contents is ok
+	err = schedSetAttr(pid, ptr, 0)
+	require.NoError(t, err)
+
+	ints[18] = 0xff // too big and not empty
+
+	err = schedSetAttr(pid, ptr, 0)
+	require.Error(t, err)
+	require.True(t, errors.Is(err, syscall.E2BIG))
+	require.Equal(t, uint32(0x38), ints[0]) // expecting kernel 5.3+
+
+	runtime.KeepAlive(dt)
 }
