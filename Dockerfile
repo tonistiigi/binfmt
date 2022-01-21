@@ -5,7 +5,7 @@ ARG GO_VERSION=1.17
 ARG ALPINE_VERSION=3.14
 ARG ALPINE_BASE=alpine:${ALPINE_VERSION}
 
-ARG QEMU_VERSION=head
+ARG QEMU_VERSION=HEAD
 ARG QEMU_REPO=https://github.com/qemu/qemu
 
 # xx is a helper for cross-compilation

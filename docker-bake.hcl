@@ -5,7 +5,7 @@ variable "QEMU_REPO" {
   default = "https://github.com/qemu/qemu"
 }
 variable "QEMU_VERSION" {
-  default = "v6.1.0"
+  default = "v6.2.0"
 }
 
 // Special target: https://github.com/docker/metadata-action#bake-definition
