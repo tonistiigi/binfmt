@@ -25,6 +25,6 @@ FROM alpine AS run
 RUN apk add libcap
 COPY --from=binary / /usr/bin
 ARG CONFIG_RT_GROUP_SCHED
-RUN --security=insecure /usr/bin/test -test.v
+RUN --security=insecure REEXEC_NAME=/usr/bin/test /usr/bin/test -test.v
 
 FROM binary

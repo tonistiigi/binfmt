@@ -21,6 +21,7 @@ RUN git clone $QEMU_REPO && cd qemu && git checkout $QEMU_VERSION
 COPY patches patches
 ARG QEMU_PATCHES=cpu-max
 ARG QEMU_PATCHES_ALL=${QEMU_PATCHES},alpine-patches,zero-init-msghdr,sched
+ARG QEMU_PRESERVE_ARGV0
 RUN <<eof
   set -ex
   if [ "${QEMU_PATCHES_ALL#*alpine-patches}" != "${QEMU_PATCHES_ALL}" ]; then
@@ -34,6 +35,9 @@ RUN <<eof
     mkdir -p ../patches/alpine-patches
     cp -a community/qemu/*.patch ../patches/alpine-patches/
     cd - && rm -rf aports
+  fi
+  if [ -n "${QEMU_PRESERVE_ARGV0}" ]; then
+    QEMU_PATCHES_ALL="${QEMU_PATCHES_ALL},preserve-argv0"
   fi
   cd qemu
   for p in $(echo $QEMU_PATCHES_ALL | tr ',' '\n'); do
@@ -107,5 +111,7 @@ RUN ./run.sh
 FROM scratch
 COPY --from=binaries / /usr/bin/
 COPY --from=binfmt /go/bin/binfmt /usr/bin/binfmt
+ARG QEMU_PRESERVE_ARGV0
+ENV QEMU_PRESERVE_ARGV0=${QEMU_PRESERVE_ARGV0}
 ENTRYPOINT [ "/usr/bin/binfmt" ]
 VOLUME /tmp
