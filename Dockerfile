@@ -27,12 +27,19 @@ RUN <<eof
   if [ "${QEMU_PATCHES_ALL#*alpine-patches}" != "${QEMU_PATCHES_ALL}" ]; then
     ver="$(cat qemu/VERSION)"
     for l in $(cat patches/aports.config); do
-      [ "$(printf "$ver\n$l" | sort -V | head -n 1)" != "$ver" ] && commit=$(echo $l | cut -d, -f2) && break;
+      if [ "$(printf "$ver\n$l" | sort -V | head -n 1)" != "$ver" ]; then
+        commit=$(echo $l | cut -d, -f2)
+        rmlist=$(echo $l | cut -d, -f3)
+        break
+      fi
     done
     mkdir -p aports && cd aports && git init
     git fetch --depth 1 https://github.com/alpinelinux/aports.git "$commit"
     git checkout FETCH_HEAD
     mkdir -p ../patches/alpine-patches
+    for f in $(echo $rmlist | tr ";" "\n"); do
+      rm community/qemu/*${f}*.patch || true
+    done
     cp -a community/qemu/*.patch ../patches/alpine-patches/
     cd - && rm -rf aports
   fi
