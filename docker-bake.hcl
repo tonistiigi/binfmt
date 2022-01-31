@@ -40,6 +40,7 @@ target "mainline" {
   args = {
     QEMU_REPO = QEMU_REPO
     QEMU_VERSION = QEMU_VERSION
+    QEMU_PRESERVE_ARGV0 = "1"
   }
   cache-to = ["type=inline"]
   cache-from = ["${REPO}:master"]
@@ -54,6 +55,7 @@ target "buildkit" {
   args = {
     BINARY_PREFIX = "buildkit-"
     QEMU_PATCHES = "cpu-max,buildkit-direct-execve-v6.1"
+    QEMU_PRESERVE_ARGV0 = ""
   }
   cache-from = ["${REPO}:buildkit-master"]
   target = "binaries"

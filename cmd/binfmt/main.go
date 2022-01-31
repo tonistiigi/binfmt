@@ -67,7 +67,7 @@ func install(arch string) error {
 		binaryPath = v
 	}
 	flags := "CF"
-	if v := os.Getenv("QEMU_PRESERVE_PARENT"); v != "" {
+	if v := os.Getenv("QEMU_PRESERVE_ARGV0"); v != "" {
 		flags += "P"
 	}
 	binaryBasename := cfg.binary

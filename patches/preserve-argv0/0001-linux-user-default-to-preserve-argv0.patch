@@ -1,0 +1,29 @@
+From eb4410de7f5297c643081e79a89f226210e3f4dd Mon Sep 17 00:00:00 2001
+From: Tonis Tiigi <tonistiigi@gmail.com>
+Date: Thu, 20 Jan 2022 20:21:07 -0800
+Subject: [PATCH] linux-user: default to preserve-argv0
+
+Signed-off-by: Tonis Tiigi <tonistiigi@gmail.com>
+---
+ linux-user/main.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/linux-user/main.c b/linux-user/main.c
+index 37ed50d98e..87e76845dc 100644
+--- a/linux-user/main.c
++++ b/linux-user/main.c
+@@ -706,6 +706,11 @@ int main(int argc, char **argv, char **envp)
+      * get binfmt_misc flags
+      */
+     preserve_argv0 = !!(qemu_getauxval(AT_FLAGS) & AT_FLAGS_PRESERVE_ARGV0);
++    
++    // default to preserve_argv0 on older kernels
++    if (qemu_getauxval(AT_FLAGS) == 0) {
++      preserve_argv0 = 1;
++    }
+ 
+     /*
+      * Manage binfmt-misc preserve-arg[0] flag
+-- 
+2.32.0 (Apple Git-132)
+
