@@ -17,6 +17,7 @@ jobs:
           - tonistiigi/binfmt:latest
           - tonistiigi/binfmt:master
         dockerfile:
+          - pip-youtube-dl
           - webpack
         platform:
           - linux/arm/v7
