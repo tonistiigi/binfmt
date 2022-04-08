@@ -85,3 +85,15 @@ target "archive" {
 target "archive-all" {
   inherits = ["archive", "all-arch"]
 }
+
+target "src" {
+  inherits = ["mainline"]
+  target = "src"
+  output = ["./qemu"]
+}
+
+target "src-buildkit" {
+  inherits = ["buildkit"]
+  target = "src"
+  output = ["./qemu"]
+}

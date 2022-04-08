@@ -11,13 +11,13 @@ ARG QEMU_REPO=https://github.com/qemu/qemu
 # xx is a helper for cross-compilation
 FROM --platform=$BUILDPLATFORM tonistiigi/xx:1.1.1 AS xx
 
-FROM --platform=$BUILDPLATFORM ${ALPINE_BASE} AS src
+FROM --platform=$BUILDPLATFORM ${ALPINE_BASE} AS src-clone
 RUN apk add --no-cache git patch
 
 WORKDIR /src
 ARG QEMU_VERSION
 ARG QEMU_REPO
-RUN git clone $QEMU_REPO && cd qemu && git checkout $QEMU_VERSION
+RUN mkdir qemu && cd qemu && git init && git fetch --depth 1 $QEMU_REPO $QEMU_VERSION && git checkout FETCH_HEAD
 COPY patches patches
 # QEMU_PATCHES defines additional patches to apply before compilation
 ARG QEMU_PATCHES=cpu-max
@@ -56,6 +56,9 @@ RUN <<eof
   scripts/git-submodule.sh update ui/keycodemapdb tests/fp/berkeley-testfloat-3 tests/fp/berkeley-softfloat-3 dtc slirp
 eof
 
+FROM scratch AS src
+COPY --from=src-clone /src/qemu/ /
+
 FROM --platform=$BUILDPLATFORM ${ALPINE_BASE} AS base
 RUN apk add --no-cache git clang lld python3 llvm make ninja pkgconfig glib-dev gcc musl-dev perl bash
 COPY --from=xx / /
@@ -74,7 +77,7 @@ ARG TARGETPLATFORM
 # QEMU_TARGETS sets architectures that emulators are built for (default all)
 ARG QEMU_VERSION QEMU_TARGETS
 ENV AR=llvm-ar STRIP=llvm-strip
-RUN --mount=target=.,from=src,src=/src/qemu,rw --mount=target=./install-scripts,src=scripts \
+RUN --mount=target=.,from=src,rw --mount=target=./install-scripts,src=scripts \
   TARGETPLATFORM=${TARGETPLATFORM} configure_qemu.sh && \
   make -j "$(getconf _NPROCESSORS_ONLN)" && \
   make install && \
