@@ -19,7 +19,9 @@ ARG QEMU_VERSION
 ARG QEMU_REPO
 RUN git clone $QEMU_REPO && cd qemu && git checkout $QEMU_VERSION
 COPY patches patches
+# QEMU_PATCHES defines additional patches to apply before compilation
 ARG QEMU_PATCHES=cpu-max
+# QEMU_PATCHES_ALL defines all patches to apply before compilation
 ARG QEMU_PATCHES_ALL=${QEMU_PATCHES},alpine-patches,zero-init-msghdr,sched
 ARG QEMU_PRESERVE_ARGV0
 RUN <<eof
@@ -68,6 +70,7 @@ RUN set -e; \
 
 FROM base AS build
 ARG TARGETPLATFORM
+# QEMU_TARGETS sets architectures that emulators are built for (default all)
 ARG QEMU_VERSION QEMU_TARGETS
 ENV AR=llvm-ar STRIP=llvm-strip
 RUN --mount=target=.,from=src,src=/src/qemu,rw --mount=target=./install-scripts,src=scripts \
@@ -98,15 +101,19 @@ RUN cd /usr/bin && mkdir -p /archive && \
   tar czvfh "/archive/${BINARY_PREFIX}qemu_${QEMU_VERSION}_$(echo $TARGETPLATFORM | sed 's/\//-/g').tar.gz" ${BINARY_PREFIX}qemu* && \
   tar czvfh "/archive/binfmt_$(echo $TARGETPLATFORM | sed 's/\//-/g').tar.gz" binfmt
 
+# binaries contains only the compiled QEMU binaries
 FROM scratch AS binaries
+# BINARY_PREFIX sets prefix string to all QEMU binaries
 ARG BINARY_PREFIX
 COPY --from=build usr/bin/${BINARY_PREFIX}qemu-* /
 
+# archive returns the tarball of binaries
 FROM scratch AS archive
 COPY --from=build-archive /archive/* /
 
 FROM --platform=$BUILDPLATFORM tonistiigi/bats-assert AS assert
 
+# buildkit-test runs test suite for buildkit embedded QEMU
 FROM golang:${GO_VERSION}-alpine AS buildkit-test
 RUN apk add --no-cache bash bats
 WORKDIR /work
@@ -115,9 +122,11 @@ COPY test .
 COPY --from=binaries / /usr/bin
 RUN ./run.sh
 
-FROM scratch
+# image builds binfmt installation image 
+FROM scratch AS image
 COPY --from=binaries / /usr/bin/
 COPY --from=binfmt /go/bin/binfmt /usr/bin/binfmt
+# QEMU_PRESERVE_ARGV0 defines if argv0 is used to set the binary name
 ARG QEMU_PRESERVE_ARGV0
 ENV QEMU_PRESERVE_ARGV0=${QEMU_PRESERVE_ARGV0}
 ENTRYPOINT [ "/usr/bin/binfmt" ]
