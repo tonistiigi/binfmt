@@ -22,7 +22,7 @@ COPY patches patches
 # QEMU_PATCHES defines additional patches to apply before compilation
 ARG QEMU_PATCHES=cpu-max
 # QEMU_PATCHES_ALL defines all patches to apply before compilation
-ARG QEMU_PATCHES_ALL=${QEMU_PATCHES},alpine-patches,zero-init-msghdr,sched
+ARG QEMU_PATCHES_ALL=${QEMU_PATCHES},alpine-patches
 ARG QEMU_PRESERVE_ARGV0
 RUN <<eof
   set -ex
