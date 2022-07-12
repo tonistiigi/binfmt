@@ -137,6 +137,9 @@ jobs:
           - webpack
         platform:
           - linux/arm/v7
+        include:
+          - dockerfile: ejabberd
+            platform: linux/arm64
     steps:
       -
         name: Checkout
