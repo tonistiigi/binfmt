@@ -29,7 +29,8 @@ RUN <<eof
   if [ "${QEMU_PATCHES_ALL#*alpine-patches}" != "${QEMU_PATCHES_ALL}" ]; then
     ver="$(cat qemu/VERSION)"
     for l in $(cat patches/aports.config); do
-      if [ "$(printf "$ver\n$l" | sort -V | head -n 1)" != "$ver" ]; then
+      pver=$(echo $l | cut -d, -f1)
+      if [ "${ver%.*}" = "${pver%.*}" ]; then
         commit=$(echo $l | cut -d, -f2)
         rmlist=$(echo $l | cut -d, -f3)
         break
