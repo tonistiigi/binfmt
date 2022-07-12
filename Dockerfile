@@ -22,14 +22,15 @@ COPY patches patches
 # QEMU_PATCHES defines additional patches to apply before compilation
 ARG QEMU_PATCHES=cpu-max
 # QEMU_PATCHES_ALL defines all patches to apply before compilation
-ARG QEMU_PATCHES_ALL=${QEMU_PATCHES},alpine-patches,zero-init-msghdr,sched
+ARG QEMU_PATCHES_ALL=${QEMU_PATCHES},alpine-patches
 ARG QEMU_PRESERVE_ARGV0
 RUN <<eof
   set -ex
   if [ "${QEMU_PATCHES_ALL#*alpine-patches}" != "${QEMU_PATCHES_ALL}" ]; then
     ver="$(cat qemu/VERSION)"
     for l in $(cat patches/aports.config); do
-      if [ "$(printf "$ver\n$l" | sort -V | head -n 1)" != "$ver" ]; then
+      pver=$(echo $l | cut -d, -f1)
+      if [ "${ver%.*}" = "${pver%.*}" ]; then
         commit=$(echo $l | cut -d, -f2)
         rmlist=$(echo $l | cut -d, -f3)
         break
