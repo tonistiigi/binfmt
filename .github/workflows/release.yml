@@ -27,6 +27,7 @@ on:
 
 env:
   REPO_SLUG: tonistiigi/binfmt
+  CACHE_GHA_SCOPE_CROSS: binfmt-cross
 
 jobs:
   release:
@@ -101,6 +102,7 @@ jobs:
           push: ${{ github.event.inputs.dry-run != 'true' }}
           set: |
             *.cache-from=${{ env.REPO_SLUG }}:${{ steps.prep.outputs.tag_prefix }}${{ github.event.inputs.qemu_version }},${{ env.REPO_SLUG }}:${{ steps.prep.outputs.tag_prefix }}master
+            *.cache-from=type=gha,scope=${{ env.CACHE_GHA_SCOPE_CROSS }}-${{ github.event.inputs.target }}
         env:
           REPO: ${{ env.REPO_SLUG }}
           QEMU_REPO: ${{ steps.prep.outputs.repo }}
@@ -116,6 +118,7 @@ jobs:
           targets: archive-all
           set: |
             *.cache-from=${{ env.REPO_SLUG }}:${{ steps.prep.outputs.tag_prefix }}${{ github.event.inputs.qemu_version }},${{ env.REPO_SLUG }}:${{ steps.prep.outputs.tag_prefix }}master
+            *.cache-from=type=gha,scope=${{ env.CACHE_GHA_SCOPE_CROSS }}-${{ github.event.inputs.target }}
         env:
           REPO: ${{ env.REPO_SLUG }}
           QEMU_REPO: ${{ steps.prep.outputs.repo }}

@@ -3,13 +3,6 @@
 . $(dirname $0)/util
 set -eu
 
-setFlags=""
-if [ "$GITHUB_ACTIONS" = "true" ]; then
-  if [ -n "$cacheRefFrom" ]; then
-    setFlags="--set=*.cache-from=type=local,src=$cacheRefFrom"
-  fi
-fi
-
 TAG=${TAG:-test} buildxCmd bake $setFlags --load mainline
 
 set -o pipefail -x
