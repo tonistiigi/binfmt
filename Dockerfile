@@ -1,15 +1,15 @@
-# syntax=docker/dockerfile:1.3-labs
+# syntax=docker/dockerfile:1
 
-ARG GO_VERSION=1.17
+ARG GO_VERSION=1.18
 
-ARG ALPINE_VERSION=3.14
+ARG ALPINE_VERSION=3.16
 ARG ALPINE_BASE=alpine:${ALPINE_VERSION}
 
 ARG QEMU_VERSION=HEAD
 ARG QEMU_REPO=https://github.com/qemu/qemu
 
 # xx is a helper for cross-compilation
-FROM --platform=$BUILDPLATFORM tonistiigi/xx@sha256:56b19a5fb89b99195ec494d59ad34370d14540858c1f56c560ec1e7f2d1c177f AS xx
+FROM --platform=$BUILDPLATFORM tonistiigi/xx:1.1.1 AS xx
 
 FROM --platform=$BUILDPLATFORM ${ALPINE_BASE} AS src
 RUN apk add --no-cache git patch

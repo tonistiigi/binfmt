@@ -7,26 +7,41 @@ run:
 
   build-tags:
     - dfrunsecurity
-    - dfrunnetwork
 
 linters:
   enable:
-    - gofmt
-    - govet
     - deadcode
+    - depguard
+    - gofmt
     - goimports
+    - gosimple
+    - revive
+    - govet
+    - importas
     - ineffassign
     - misspell
+    - staticcheck
+    - structcheck
+    - typecheck
     - unused
     - varcheck
-    - golint
-    - staticcheck
-    - typecheck
-    - structcheck
+    - bodyclose
+    - errname
+    - makezero
+    - whitespace
   disable-all: true
+
+linters-settings:
+  depguard:
+    list-type: blacklist
+    include-go-root: true
+    packages:
+      # The io/ioutil package has been deprecated.
+      # https://go.dev/doc/go1.16#ioutil
+      - io/ioutil
 
 issues:
   exclude-rules:
     - linters:
-        - golint
+        - revive
       text: "stutters"
