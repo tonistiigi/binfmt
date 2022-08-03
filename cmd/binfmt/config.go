@@ -68,7 +68,7 @@ var configs = map[string]config{
 
 func allArch() []string {
 	m := map[string]struct{}{}
-	for _, pp := range archutil.SupportedPlatforms(true) {
+	for _, pp := range formatPlatforms(archutil.SupportedPlatforms(true)) {
 		p, err := platforms.Parse(pp)
 		if err == nil {
 			m[p.Architecture] = struct{}{}
