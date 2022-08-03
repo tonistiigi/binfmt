@@ -11,10 +11,40 @@ on:
 
 env:
   REPO_SLUG: tonistiigi/binfmt
+  CACHE_GHA_SCOPE: binfmt
+  CACHE_GHA_SCOPE_CROSS: binfmt-cross
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - mainline
+          - buildkit
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v3
+      -
+        name: Expose GitHub Runtime
+        uses: crazy-max/ghaction-github-runtime@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      -
+        name: Warm cache
+        run: |
+          ./hack/warm-cache ${{ matrix.target }}
+        env:
+          CACHE_FROM: type=gha,scope=${{ env.CACHE_GHA_SCOPE }}-${{ matrix.target }}
+          CACHE_TO: type=gha,scope=${{ env.CACHE_GHA_SCOPE }}-${{ matrix.target }}
+
   validate:
     runs-on: ubuntu-latest
+    needs:
+      - prepare
     strategy:
       fail-fast: false
       matrix:
@@ -27,16 +57,22 @@ jobs:
         name: Checkout
         uses: actions/checkout@v3
       -
+        name: Expose GitHub Runtime
+        uses: crazy-max/ghaction-github-runtime@v2
+      -
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       -
         name: Run
         run: |
           ${{ matrix.script }}
+        env:
+          CACHE_FROM: type=gha,scope=${{ env.CACHE_GHA_SCOPE }}-mainline
 
-  build:
+  test:
     runs-on: ubuntu-latest
-    needs: [ validate ]
+    needs:
+      - prepare
     strategy:
       fail-fast: false
       matrix:
@@ -48,14 +84,105 @@ jobs:
         name: Checkout
         uses: actions/checkout@v3
       -
-        name: Cache
-        uses: actions/cache@v3
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      -
+        name: Test buildkit
+        if: matrix.target == 'buildkit'
+        uses: docker/bake-action@v2
         with:
-          path: /tmp/.binfmt-cache
-          key: ${{ runner.os }}-binfmt-${{ matrix.target }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-binfmt-${{ matrix.target }}-
-            ${{ runner.os }}-binfmt-
+          targets: buildkit-test
+          set: |
+            *.cache-from=type=gha,scope=${{ env.CACHE_GHA_SCOPE }}-${{ matrix.target }}
+      -
+        name: Load mainline for testing
+        if: matrix.target == 'mainline'
+        uses: docker/bake-action@v2
+        with:
+          targets: mainline
+          load: true
+          set: |
+            *.cache-from=type=gha,scope=${{ env.CACHE_GHA_SCOPE }}-${{ matrix.target }}
+            mainline.tags=tonistiigi/binfmt:test
+      -
+        name: Test mainline
+        if: matrix.target == 'mainline'
+        run: |
+          docker run --rm --privileged tonistiigi/binfmt:test --uninstall amd64,arm64,arm,ppc64le,s390x,riscv64
+          docker run --rm --privileged tonistiigi/binfmt:test --install all
+          docker run --rm arm64v8/alpine uname -a
+          docker run --rm arm32v7/alpine uname -a
+          docker run --rm ppc64le/alpine uname -a
+          docker run --rm s390x/alpine uname -a
+          docker run --rm tonistiigi/debian:riscv uname -a
+          docker run --rm --platform=linux/s390x s390x/ubuntu apt update
+          docker run --rm --platform=linux/ppc64le ppc64le/ubuntu apt update
+          docker run --rm --platform=linux/arm64 arm64v8/ubuntu apt update
+      -
+        name: Test Syscalls
+        if: matrix.target == 'mainline'
+        run: |
+          set -x
+          docker buildx build --platform=linux/amd64,linux/arm64,linux/386,linux/arm,linux/ppc64le,linux/s390x --target=run --allow security.insecure --build-arg CONFIG_RT_GROUP_SCHED=false ./test
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs:
+      - prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        dockerfile:
+          - pip-youtube-dl
+          - webpack
+        platform:
+          - linux/arm/v7
+        include:
+          - dockerfile: ejabberd
+            platform: linux/arm64
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v3
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      -
+        name: Load mainline for testing
+        uses: docker/bake-action@v2
+        with:
+          targets: mainline
+          load: true
+          set: |
+            *.cache-from=type=gha,scope=${{ env.CACHE_GHA_SCOPE }}-mainline
+            mainline.tags=tonistiigi/binfmt:test
+      -
+        name: Set up QEMU
+        run: |
+          docker run --privileged --rm tonistiigi/binfmt --uninstall qemu-*
+          docker run --rm --privileged tonistiigi/binfmt:test --install all
+      -
+        name: Test
+        working-directory: test/dockerfiles/${{ matrix.dockerfile }}
+        run: |
+          docker buildx build --platform ${{ matrix.platform }} --output type=cacheonly .
+
+  build:
+    runs-on: ubuntu-latest
+    needs:
+      - validate
+      - test
+      - e2e
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - mainline
+          - buildkit
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v3
       -
         name: Docker meta
         id: meta
@@ -78,45 +205,6 @@ jobs:
           config: .github/buildkit.toml
           buildkitd-flags: --allow-insecure-entitlement=security.insecure
       -
-        name: Test buildkit
-        if: matrix.target == 'buildkit'
-        uses: docker/bake-action@v2
-        with:
-          files: |
-            ./docker-bake.hcl
-            ${{ steps.meta.outputs.bake-file }}
-          targets: buildkit-test
-      - name: Load mainline for testing
-        if: matrix.target == 'mainline'
-        uses: docker/bake-action@v2
-        with:
-          files: |
-            ./docker-bake.hcl
-            ${{ steps.meta.outputs.bake-file }}
-          targets: mainline
-          load: true
-          set: |
-            *.cache-from=type=local,src=/tmp/.binfmt-cache/${{ matrix.target }}
-            mainline.tags=tonistiigi/binfmt:test
-      - name: Test mainline
-        if: matrix.target == 'mainline'
-        run: |
-          docker run --rm --privileged tonistiigi/binfmt:test --uninstall amd64,arm64,arm,ppc64le,s390x,riscv64
-          docker run --rm --privileged tonistiigi/binfmt:test --install all
-          docker run --rm arm64v8/alpine uname -a
-          docker run --rm arm32v7/alpine uname -a
-          docker run --rm ppc64le/alpine uname -a
-          docker run --rm s390x/alpine uname -a
-          docker run --rm tonistiigi/debian:riscv uname -a
-          docker run --rm --platform=linux/s390x s390x/ubuntu apt update
-          docker run --rm --platform=linux/ppc64le ppc64le/ubuntu apt update
-          docker run --rm --platform=linux/arm64 arm64v8/ubuntu apt update
-      - name: Test Syscalls
-        if: matrix.target == 'mainline'
-        run: |
-          set -x
-          docker buildx build --platform=linux/amd64,linux/arm64,linux/386,linux/arm,linux/ppc64le,linux/s390x --target=run --allow security.insecure --build-arg CONFIG_RT_GROUP_SCHED=false ./test
-      -
         name: Login to DockerHub
         if: startsWith(github.ref, 'refs/heads/')
         uses: docker/login-action@v2
@@ -125,7 +213,7 @@ jobs:
           password: ${{ secrets.DOCKERIO_PASSWORD }}
       -
         name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
       -
         name: Build ${{ matrix.target }}
         uses: docker/bake-action@v2
@@ -136,11 +224,6 @@ jobs:
           targets: ${{ matrix.target }}-all
           push: ${{ startsWith(github.ref, 'refs/heads/') }}
           set: |
-            *.cache-from=type=local,src=/tmp/.binfmt-cache/${{ matrix.target }}
-            *.cache-to=type=local,dest=/tmp/.binfmt-cache/${{ matrix.target }}-new
-      -
-        # FIXME: Temp fix for https://github.com/moby/buildkit/issues/1850
-        name: Move cache
-        run: |
-          rm -rf /tmp/.binfmt-cache/${{ matrix.target }}
-          mv /tmp/.binfmt-cache/${{ matrix.target }}-new /tmp/.binfmt-cache/${{ matrix.target }}
+            *.cache-from=type=gha,scope=${{ env.CACHE_GHA_SCOPE_CROSS }}-${{ matrix.target }}
+            *.cache-from=type=gha,scope=${{ env.CACHE_GHA_SCOPE }}-${{ matrix.target }}
+            *.cache-to=type=gha,scope=${{ env.CACHE_GHA_SCOPE_CROSS }}-${{ matrix.target }}

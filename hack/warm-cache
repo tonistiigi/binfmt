@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+TARGET=$1
+
+. $(dirname $0)/util
+set -e
+
+usage() {
+  echo "usage: ./hack/warm-cache <target>"
+  exit 1
+}
+
+if [ -z "$TARGET" ]; then
+  usage
+fi
+
+buildxCmd bake $setFlags --set=*.output=type=cacheonly $TARGET
