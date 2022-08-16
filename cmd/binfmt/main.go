@@ -13,6 +13,7 @@ import (
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/moby/buildkit/util/archutil"
+	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
 
@@ -116,16 +117,24 @@ func printStatus() error {
 		Supported []string `json:"supported"`
 		Emulators []string `json:"emulators"`
 	}{
-		Supported: archutil.SupportedPlatforms(true),
+		Supported: formatPlatforms(archutil.SupportedPlatforms(true)),
 		Emulators: emulators,
 	}
 
 	dt, err := json.MarshalIndent(out, "", "  ")
 	if err != nil {
-		return nil
+		return err
 	}
 	fmt.Printf("%s\n", dt)
 	return nil
+}
+
+func formatPlatforms(p []ocispecs.Platform) []string {
+	str := make([]string, 0, len(p))
+	for _, pp := range p {
+		str = append(str, platforms.Format(platforms.Normalize(pp)))
+	}
+	return str
 }
 
 func parseArch(in string) (out []string) {
@@ -210,6 +219,5 @@ func run() error {
 		}
 	}
 
-	printStatus()
-	return nil
+	return printStatus()
 }
