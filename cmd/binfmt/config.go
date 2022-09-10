@@ -85,6 +85,9 @@ func allArch() []string {
 				if _, err := os.Stat(fullPath); err == nil {
 					out = append(out, name)
 				}
+			} else {
+				// Make sure install() will print the error
+				out = append(out, name)
 			}
 		}
 	}
