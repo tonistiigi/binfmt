@@ -58,7 +58,7 @@ target "buildkit" {
   inherits = ["mainline"]
   args = {
     BINARY_PREFIX = "buildkit-"
-    QEMU_PATCHES = "${QEMU_PATCHES},buildkit-direct-execve-v7.0"
+    QEMU_PATCHES = "${QEMU_PATCHES},buildkit-direct-execve-v7.1"
     QEMU_PRESERVE_ARGV0 = ""
   }
   cache-from = ["${REPO}:buildkit-master"]
