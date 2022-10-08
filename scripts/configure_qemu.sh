@@ -2,39 +2,38 @@
 
 set -e
 
-: ${QEMU_TARGETS=}
-
+: "${QEMU_TARGETS=}"
 
 arch="$(xx-info arch)"
 
 if [ -z "$QEMU_TARGETS" ]; then
-if [ "$arch" != "amd64" ]; then
+  if [ "$arch" != "amd64" ]; then
     QEMU_TARGETS="$QEMU_TARGETS x86_64-linux-user"
-fi
-if [ "$arch" != "arm64" ]; then
+  fi
+  if [ "$arch" != "arm64" ]; then
     QEMU_TARGETS="$QEMU_TARGETS aarch64-linux-user"
-fi
-if [ "$arch" != "arm" ]; then
+  fi
+  if [ "$arch" != "arm" ]; then
     QEMU_TARGETS="$QEMU_TARGETS arm-linux-user"
-fi
-if [ "$arch" != "riscv64" ]; then
+  fi
+  if [ "$arch" != "riscv64" ]; then
     QEMU_TARGETS="$QEMU_TARGETS riscv64-linux-user"
-fi
-if [ "$arch" != "ppc64le" ]; then
+  fi
+  if [ "$arch" != "ppc64le" ]; then
     QEMU_TARGETS="$QEMU_TARGETS ppc64le-linux-user"
-fi
-if [ "$arch" != "s390x" ]; then
+  fi
+  if [ "$arch" != "s390x" ]; then
     QEMU_TARGETS="$QEMU_TARGETS s390x-linux-user"
-fi
-if [ "$arch" != "386" ] ; then
+  fi
+  if [ "$arch" != "386" ] ; then
     QEMU_TARGETS="$QEMU_TARGETS i386-linux-user"
-fi
-if [ "$arch" != "mips64le" ] ; then
+  fi
+  if [ "$arch" != "mips64le" ] ; then
     QEMU_TARGETS="$QEMU_TARGETS mips64el-linux-user"
-fi
-if [ "$arch" != "mips64" ] ; then
+  fi
+  if [ "$arch" != "mips64" ] ; then
     QEMU_TARGETS="$QEMU_TARGETS mips64-linux-user"
-fi
+  fi
 fi
 
 set -x
