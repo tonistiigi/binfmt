@@ -5,7 +5,7 @@ variable "QEMU_REPO" {
   default = "https://github.com/qemu/qemu"
 }
 variable "QEMU_VERSION" {
-  default = "v7.0.0"
+  default = "v7.1.0"
 }
 variable "QEMU_PATCHES" {
   default = "cpu-max"
