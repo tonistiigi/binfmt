@@ -5,6 +5,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/moby/buildkit/util/archutil"
@@ -80,7 +81,14 @@ func allArch() []string {
 	out := make([]string, 0, len(configs))
 	for name := range configs {
 		if _, ok := m[name]; !ok {
-			out = append(out, name)
+			if _, fullPath, err := getBinaryNames(configs[name]); err == nil {
+				if _, err := os.Stat(fullPath); err == nil {
+					out = append(out, name)
+				}
+			} else {
+				// Make sure install() will print the error
+				out = append(out, name)
+			}
 		}
 	}
 	return out

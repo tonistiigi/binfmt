@@ -44,6 +44,22 @@ func uninstall(arch string) error {
 	return errors.Errorf("not found")
 }
 
+func getBinaryNames(cfg config) (string, string, error) {
+	binaryPath := "/usr/bin"
+	if v := os.Getenv("QEMU_BINARY_PATH"); v != "" {
+		binaryPath = v
+	}
+	binaryBasename := cfg.binary
+	if binaryPrefix := os.Getenv("QEMU_BINARY_PREFIX"); binaryPrefix != "" {
+		if strings.ContainsRune(binaryPrefix, os.PathSeparator) {
+			return "", "", errors.New("binary prefix must not contain path separator (Hint: set $QEMU_BINARY_PATH to specify the directory)")
+		}
+		binaryBasename = binaryPrefix + binaryBasename
+	}
+	binaryFullpath := filepath.Join(binaryPath, binaryBasename)
+	return binaryBasename, binaryFullpath, nil
+}
+
 func install(arch string) error {
 	cfg, ok := configs[arch]
 	if !ok {
@@ -63,22 +79,14 @@ func install(arch string) error {
 	}
 	defer file.Close()
 
-	binaryPath := "/usr/bin"
-	if v := os.Getenv("QEMU_BINARY_PATH"); v != "" {
-		binaryPath = v
-	}
 	flags := "CF"
 	if v := os.Getenv("QEMU_PRESERVE_ARGV0"); v != "" {
 		flags += "P"
 	}
-	binaryBasename := cfg.binary
-	if binaryPrefix := os.Getenv("QEMU_BINARY_PREFIX"); binaryPrefix != "" {
-		if strings.ContainsRune(binaryPrefix, os.PathSeparator) {
-			return errors.New("binary prefix must not contain path separator (Hint: set $QEMU_BINARY_PATH to specify the directory)")
-		}
-		binaryBasename = binaryPrefix + binaryBasename
+	binaryBasename, binaryFullpath, err := getBinaryNames(cfg)
+	if err != nil {
+		return err
 	}
-	binaryFullpath := filepath.Join(binaryPath, binaryBasename)
 
 	line := fmt.Sprintf(":%s:M:0:%s:%s:%s:%s", binaryBasename, cfg.magic, cfg.mask, binaryFullpath, flags)
 
