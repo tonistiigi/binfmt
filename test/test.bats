@@ -6,7 +6,7 @@ exec0() {
   if [ -z "$BINFMT_EMULATOR" ]; then
     run ./execargv0 "$@"
   else 
-    run buildkit-qemu-$BINFMT_EMULATOR ./execargv0 "$@"
+    PATH=/crossarch/usr/bin:/crossarch/bin:$PATH run buildkit-qemu-$BINFMT_EMULATOR ./execargv0 "$@"
   fi
 }
 
@@ -14,7 +14,7 @@ execdirect() {
   if [ -z "$BINFMT_EMULATOR" ]; then
     run "$@"
   else 
-    run buildkit-qemu-$BINFMT_EMULATOR "$@"
+    PATH=/crossarch/usr/bin:/crossarch/bin:$PATH run buildkit-qemu-$BINFMT_EMULATOR "$@"
   fi
 }
 
@@ -84,4 +84,54 @@ execdirect() {
   execdirect ./shebang.sh foo bar1
   assert_success
   assert_output "./printargs ./shebang.sh foo bar1"
+}
+
+@test "relative-exec" {
+  exec0 env env ./printargs foo bar1 bar2
+  assert_success
+  assert_output "./printargs foo bar1 bar2"
+}
+
+@test "path-based-exec" {
+  PATH="$PATH:/work" exec0 env env printargs foo bar1 bar2
+  assert_success
+  assert_output "printargs foo bar1 bar2"
+}
+
+@test "shebang-path" {
+  exec0 ./shebang-path.sh ./shebang-path.sh foo bar1
+  assert_success
+  assert_output "./printargs /work/shebang-path.sh foo bar1"
+}
+
+@test "shebang-path-shell" {
+  exec0 ./shebang-path2.sh ./shebang-path2.sh foo bar1
+  assert_success
+  assert_output "./printargs foo bar1"
+}
+
+@test "shell-command-relative" {
+  if [ -n "$BINFMT_EMULATOR" ]; then
+    skip "prepend_workdir_if_relative is altering the behaviour for args when run under emulation"
+  fi
+
+  exec0 sh sh -c './shebang-path.sh foo bar1 bar2'
+  assert_success
+  assert_output "./printargs ./shebang-path.sh foo bar1 bar2"
+}
+
+@test "shell-command-relative-direct" {
+  if [ -n "$BINFMT_EMULATOR" ]; then
+    skip "prepend_workdir_if_relative is altering the behaviour for args when run under emulation"
+  fi
+
+  execdirect sh -c './shebang-path.sh foo bar1 bar2'
+  assert_success
+  assert_output "./printargs ./shebang-path.sh foo bar1 bar2"
+}
+
+@test "shell-command-relative-nested" {
+  exec0 sh sh -c './shebang-path2.sh foo bar1 bar2'
+  assert_success
+  assert_output "./printargs foo bar1 bar2"
 }

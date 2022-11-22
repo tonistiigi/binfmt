@@ -1,0 +1,3 @@
+#!/work/env sh
+
+./printargs "$@"
