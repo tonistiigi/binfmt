@@ -114,6 +114,38 @@ COPY --from=build-archive /archive/* /
 
 FROM --platform=$BUILDPLATFORM tonistiigi/bats-assert AS assert
 
+FROM --platform=$BUILDPLATFORM ${ALPINE_BASE} AS alpine-crossarch
+
+RUN apk add --no-cache bash
+
+# Runs on the build platform without emulation, but we need to get hold of the cross arch busybox binary
+# for use with tests using emulation
+ARG BUILDARCH
+RUN <<eof
+  bash -euo pipefail -c '
+    if [ "$BUILDARCH" == "amd64" ]; then
+      echo "aarch64" > /etc/apk/arch
+    else
+      echo "x86_64" > /etc/apk/arch
+    fi
+    '
+eof
+RUN apk add --allow-untrusted --no-cache busybox-static
+
+# Recreate all the symlinks for commands handled by the busybox multi-call binary such that they will use
+# the cross-arch binary, and work under emulation
+RUN <<eof
+  bash -euo pipefail -c '
+    mkdir -p /crossarch/bin /crossarch/usr/bin
+    mv /bin/busybox.static /crossarch/bin/
+    for i in $(echo /bin/*; echo /usr/bin/*); do
+     if [[ $(readlink -f "$i") != *busybox* ]]; then
+       continue
+     fi
+     ln -s /crossarch/bin/busybox.static /crossarch$i
+    done'
+eof
+
 # buildkit-test runs test suite for buildkit embedded QEMU
 FROM golang:${GO_VERSION}-alpine AS buildkit-test
 RUN apk add --no-cache bash bats
@@ -121,6 +153,7 @@ WORKDIR /work
 COPY --from=assert . .
 COPY test .
 COPY --from=binaries / /usr/bin
+COPY --from=alpine-crossarch /crossarch /crossarch/
 RUN ./run.sh
 
 # image builds binfmt installation image 

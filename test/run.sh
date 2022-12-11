@@ -1,5 +1,6 @@
 #!/usr/bin/env sh
 
+ln -s /usr/bin/env /work/env
 go build print/printargs.go
 go build exec/execargv0.go
 
@@ -14,6 +15,7 @@ if [ "$(uname -m)" = "aarch64" ]; then
   crossEmulator="x86_64"
 fi
 
+ln -sf /crossarch/usr/bin/env /work/env
 GOARCH=$crossArch go build print/printargs.go
 GOARCH=$crossArch go build exec/execargv0.go
 
