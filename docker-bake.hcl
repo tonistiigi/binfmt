@@ -5,7 +5,7 @@ variable "QEMU_REPO" {
   default = "https://github.com/qemu/qemu"
 }
 variable "QEMU_VERSION" {
-  default = "v7.1.0"
+  default = "v7.2.0"
 }
 variable "QEMU_PATCHES" {
   default = "cpu-max"
@@ -59,7 +59,7 @@ target "buildkit" {
   inherits = ["mainline"]
   args = {
     BINARY_PREFIX = "buildkit-"
-    QEMU_PATCHES = "${QEMU_PATCHES},buildkit-direct-execve-v7.1"
+    QEMU_PATCHES = "${QEMU_PATCHES},buildkit-direct-execve-v7.2"
     QEMU_PRESERVE_ARGV0 = ""
   }
   cache-from = ["${REPO}:buildkit-master"]
