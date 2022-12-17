@@ -18,7 +18,7 @@ ARG QEMU_REPO
 RUN git clone $QEMU_REPO && cd qemu && git checkout $QEMU_VERSION
 COPY patches patches
 # QEMU_PATCHES defines additional patches to apply before compilation
-ARG QEMU_PATCHES=cpu-max
+ARG QEMU_PATCHES=cpu-max-arm
 # QEMU_PATCHES_ALL defines all patches to apply before compilation
 ARG QEMU_PATCHES_ALL=${QEMU_PATCHES},alpine-patches
 ARG QEMU_PRESERVE_ARGV0

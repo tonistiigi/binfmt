@@ -8,7 +8,7 @@ variable "QEMU_VERSION" {
   default = "v7.2.0"
 }
 variable "QEMU_PATCHES" {
-  default = "cpu-max"
+  default = "cpu-max-arm"
 }
 
 // Special target: https://github.com/docker/metadata-action#bake-definition
