@@ -2,33 +2,21 @@ run:
   timeout: 10m
   skip-files:
     - ".*\\.pb\\.go$"
-
   modules-download-mode: vendor
-
-  build-tags:
-    - dfrunsecurity
 
 linters:
   enable:
-    - deadcode
-    - depguard
     - gofmt
-    - goimports
-    - gosimple
-    - revive
     - govet
-    - importas
+    - depguard
+    - goimports
     - ineffassign
     - misspell
-    - staticcheck
-    - structcheck
-    - typecheck
     - unused
-    - varcheck
-    - bodyclose
-    - errname
-    - makezero
-    - whitespace
+    - revive
+    - staticcheck
+    - typecheck
+    - nolintlint
   disable-all: true
 
 linters-settings:
