@@ -1,9 +1,7 @@
 # syntax=docker/dockerfile:1
 
 ARG GO_VERSION=1.20
-
-ARG ALPINE_VERSION=3.16
-ARG ALPINE_BASE=alpine:${ALPINE_VERSION}
+ARG ALPINE_VERSION=3.17
 
 ARG QEMU_VERSION=HEAD
 ARG QEMU_REPO=https://github.com/qemu/qemu
@@ -11,7 +9,7 @@ ARG QEMU_REPO=https://github.com/qemu/qemu
 # xx is a helper for cross-compilation
 FROM --platform=$BUILDPLATFORM tonistiigi/xx:1.2.1 AS xx
 
-FROM --platform=$BUILDPLATFORM ${ALPINE_BASE} AS src
+FROM --platform=$BUILDPLATFORM alpine:${ALPINE_VERSION} AS src
 RUN apk add --no-cache git patch
 
 WORKDIR /src
@@ -56,7 +54,7 @@ RUN <<eof
   scripts/git-submodule.sh update ui/keycodemapdb tests/fp/berkeley-testfloat-3 tests/fp/berkeley-softfloat-3 dtc slirp
 eof
 
-FROM --platform=$BUILDPLATFORM ${ALPINE_BASE} AS base
+FROM --platform=$BUILDPLATFORM alpine:${ALPINE_VERSION} AS base
 RUN apk add --no-cache git clang lld python3 llvm make ninja pkgconfig glib-dev gcc musl-dev perl bash
 COPY --from=xx / /
 ENV PATH=/qemu/install-scripts:$PATH
@@ -114,7 +112,7 @@ COPY --from=build-archive /archive/* /
 
 FROM --platform=$BUILDPLATFORM tonistiigi/bats-assert AS assert
 
-FROM --platform=$BUILDPLATFORM ${ALPINE_BASE} AS alpine-crossarch
+FROM --platform=$BUILDPLATFORM alpine:${ALPINE_VERSION} AS alpine-crossarch
 
 RUN apk add --no-cache bash
 
