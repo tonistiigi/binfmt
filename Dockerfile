@@ -9,7 +9,7 @@ ARG QEMU_VERSION=HEAD
 ARG QEMU_REPO=https://github.com/qemu/qemu
 
 # xx is a helper for cross-compilation
-FROM --platform=$BUILDPLATFORM tonistiigi/xx:1.1.1 AS xx
+FROM --platform=$BUILDPLATFORM tonistiigi/xx:1.2.1 AS xx
 
 FROM --platform=$BUILDPLATFORM ${ALPINE_BASE} AS src
 RUN apk add --no-cache git patch
