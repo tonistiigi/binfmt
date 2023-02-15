@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1
 
-FROM golang:1.18-alpine
+ARG GO_VERSION=1.20
+
+FROM golang:${GO_VERSION}-alpine
 RUN apk add --no-cache gcc musl-dev
 RUN wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.45.0
 WORKDIR /go/src/github.com/tonistiigi/binfmt
