@@ -66,7 +66,7 @@ services:
     network_mode: bridge
     restart: "no"
 ```
-Do not forget to add `restart: "no"`, otherwise docker will keep restarting the container.
+Only use container `restart-policy` as `no`, otherwise docker will keep restarting the container.
 
 ## Uninstalling emulators
 
