@@ -43,7 +43,6 @@ set -x
   --enable-linux-user \
   --disable-system \
   --static \
-  --disable-blobs \
   --disable-brlapi \
   --disable-cap-ng \
   --disable-capstone \
