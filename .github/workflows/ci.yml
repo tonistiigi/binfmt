@@ -12,8 +12,6 @@ on:
     branches:
       - master
   pull_request:
-    branches:
-      - master
 
 env:
   REPO_SLUG: tonistiigi/binfmt
@@ -146,6 +144,9 @@ jobs:
         include:
           - dockerfile: ejabberd
             platform: linux/arm64
+          - dockerfile: tini
+            platform: linux/arm64
+            run: true
     steps:
       -
         name: Checkout
@@ -172,6 +173,18 @@ jobs:
         working-directory: test/dockerfiles/${{ matrix.dockerfile }}
         run: |
           docker buildx build --platform ${{ matrix.platform }} --output type=cacheonly .
+      -
+        name: Load image
+        if: ${{ matrix.run }}
+        working-directory: test/dockerfiles/${{ matrix.dockerfile }}
+        run: |
+          docker buildx build --platform ${{ matrix.platform }} -t ${{ matrix.dockerfile }}:local --load .
+      -
+        name: Run
+        if: ${{ matrix.run }}
+        working-directory: test/dockerfiles/${{ matrix.dockerfile }}
+        run: |
+          docker run --rm --platform ${{ matrix.platform }} ${{ matrix.dockerfile }}:local
 
   build:
     runs-on: ubuntu-latest
