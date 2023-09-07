@@ -51,6 +51,9 @@ Prints similar to:
 ```bash
 docker run --privileged --rm tonistiigi/binfmt --install all
 docker run --privileged --rm tonistiigi/binfmt --install arm64,riscv64,arm
+
+# install all architectures, except for riscv64
+docker run --privileged --rm tonistiigi/binfmt --install all,-riscv64
 ```
 
 ## Uninstalling emulators
