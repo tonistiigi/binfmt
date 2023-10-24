@@ -2,12 +2,13 @@
 
 ARG GO_VERSION=1.20
 ARG ALPINE_VERSION=3.17
+ARG XX_VERSION=1.3.0
 
 ARG QEMU_VERSION=HEAD
 ARG QEMU_REPO=https://github.com/qemu/qemu
 
 # xx is a helper for cross-compilation
-FROM --platform=$BUILDPLATFORM tonistiigi/xx:1.2.1 AS xx
+FROM --platform=$BUILDPLATFORM tonistiigi/xx:${XX_VERSION} AS xx
 
 FROM --platform=$BUILDPLATFORM alpine:${ALPINE_VERSION} AS src
 RUN apk add --no-cache git patch
