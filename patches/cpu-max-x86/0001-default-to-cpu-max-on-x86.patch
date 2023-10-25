@@ -1,0 +1,38 @@
+From 8a422083418f9350702719ecb22b509da3bc25cb Mon Sep 17 00:00:00 2001
+From: CrazyMax <crazy-max@users.noreply.github.com>
+Date: Sat, 17 Dec 2022 08:16:17 +0100
+Subject: [PATCH] default to cpu max on x86
+
+Signed-off-by: CrazyMax <crazy-max@users.noreply.github.com>
+---
+ linux-user/i386/target_elf.h   | 2 +-
+ linux-user/x86_64/target_elf.h | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/linux-user/i386/target_elf.h b/linux-user/i386/target_elf.h
+index 1c6142e7da..238a9aba73 100644
+--- a/linux-user/i386/target_elf.h
++++ b/linux-user/i386/target_elf.h
+@@ -9,6 +9,6 @@
+ #define I386_TARGET_ELF_H
+ static inline const char *cpu_get_model(uint32_t eflags)
+ {
+-    return "qemu32";
++    return "max";
+ }
+ #endif
+diff --git a/linux-user/x86_64/target_elf.h b/linux-user/x86_64/target_elf.h
+index 7b76a90de8..3f628f8d66 100644
+--- a/linux-user/x86_64/target_elf.h
++++ b/linux-user/x86_64/target_elf.h
+@@ -9,6 +9,6 @@
+ #define X86_64_TARGET_ELF_H
+ static inline const char *cpu_get_model(uint32_t eflags)
+ {
+-    return "qemu64";
++    return "max";
+ }
+ #endif
+-- 
+2.34.0
+

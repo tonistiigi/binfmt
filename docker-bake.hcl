@@ -5,10 +5,10 @@ variable "QEMU_REPO" {
   default = "https://github.com/qemu/qemu"
 }
 variable "QEMU_VERSION" {
-  default = "v7.1.0"
+  default = "v8.0.4"
 }
 variable "QEMU_PATCHES" {
-  default = "cpu-max"
+  default = "cpu-max-arm"
 }
 
 // Special target: https://github.com/docker/metadata-action#bake-definition
@@ -59,7 +59,7 @@ target "buildkit" {
   inherits = ["mainline"]
   args = {
     BINARY_PREFIX = "buildkit-"
-    QEMU_PATCHES = "${QEMU_PATCHES},buildkit-direct-execve-v7.1"
+    QEMU_PATCHES = "${QEMU_PATCHES},buildkit-direct-execve-v8.0"
     QEMU_PRESERVE_ARGV0 = ""
   }
   cache-from = ["${REPO}:buildkit-master"]

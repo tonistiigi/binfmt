@@ -1,0 +1,38 @@
+From 77ec3e116a5d56a7b3d69514ab7409b43d9490c9 Mon Sep 17 00:00:00 2001
+From: CrazyMax <crazy-max@users.noreply.github.com>
+Date: Sat, 17 Dec 2022 08:06:50 +0100
+Subject: [PATCH] default to cpu max on arm
+
+Signed-off-by: CrazyMax <crazy-max@users.noreply.github.com>
+---
+ linux-user/aarch64/target_elf.h | 2 +-
+ linux-user/arm/target_elf.h     | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/linux-user/aarch64/target_elf.h b/linux-user/aarch64/target_elf.h
+index a7eb962fba..fc11ae3bcb 100644
+--- a/linux-user/aarch64/target_elf.h
++++ b/linux-user/aarch64/target_elf.h
+@@ -9,6 +9,6 @@
+ #define AARCH64_TARGET_ELF_H
+ static inline const char *cpu_get_model(uint32_t eflags)
+ {
+-    return "any";
++    return "max";
+ }
+ #endif
+diff --git a/linux-user/arm/target_elf.h b/linux-user/arm/target_elf.h
+index 58ff6a0986..6ad56e3cbf 100644
+--- a/linux-user/arm/target_elf.h
++++ b/linux-user/arm/target_elf.h
+@@ -9,6 +9,6 @@
+ #define ARM_TARGET_ELF_H
+ static inline const char *cpu_get_model(uint32_t eflags)
+ {
+-    return "any";
++    return "max";
+ }
+ #endif
+-- 
+2.34.0
+
