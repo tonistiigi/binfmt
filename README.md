@@ -1,6 +1,6 @@
 # Binfmt
 
-[![CI Status](https://github.com/tonistiigi/binfmt/workflows/ci/badge.svg)](https://github.com/tonistiigi/binfmt/actions?query=workflow%3Aci)
+[![CI Status](https://github.com/tonistiigi/binfmt/actions/workflows/ci.yml/badge.svg)](https://github.com/tonistiigi/binfmt/actions/workflows/ci.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/tonistiigi/binfmt)](https://goreportcard.com/report/github.com/tonistiigi/binfmt)
 [![Docker Pulls](https://img.shields.io/docker/pulls/tonistiigi/binfmt.svg?logo=docker)](https://hub.docker.com/r/tonistiigi/binfmt/)
 
