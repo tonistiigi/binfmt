@@ -1,0 +1,55 @@
+run:
+  timeout: 10m
+  skip-files:
+    - ".*\\.pb\\.go$"
+  modules-download-mode: vendor
+
+linters:
+  enable:
+    - gofmt
+    - govet
+    - depguard
+    - goimports
+    - ineffassign
+    - misspell
+    - unused
+    - revive
+    - staticcheck
+    - typecheck
+    - nolintlint
+  disable-all: true
+
+linters-settings:
+  depguard:
+    rules:
+      main:
+        deny:
+          # The io/ioutil package has been deprecated.
+          # https://go.dev/doc/go1.16#ioutil
+          - pkg: "io/ioutil"
+            desc: The io/ioutil package has been deprecated.
+
+issues:
+  exclude-rules:
+    - linters:
+        - revive
+      text: "stutters"
+    - linters:
+        - revive
+      text: "empty-block"
+    - linters:
+        - revive
+      text: "superfluous-else"
+    - linters:
+        - revive
+      text: "unused-parameter"
+    - linters:
+        - revive
+      text: "redefines-builtin-id"
+    - linters:
+        - revive
+      text: "if-return"
+
+# show all
+max-issues-per-linter: 0
+max-same-issues: 0

@@ -1,0 +1,235 @@
+name: ci
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  schedule:
+    - cron: '0 8 */6 * *' # every 6 days
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+env:
+  REPO_SLUG: tonistiigi/binfmt
+  CACHE_GHA_SCOPE: binfmt
+  CACHE_GHA_SCOPE_CROSS: binfmt-cross
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - mainline
+          - buildkit
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v3
+      -
+        name: Expose GitHub Runtime
+        uses: crazy-max/ghaction-github-runtime@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      -
+        name: Warm cache
+        run: |
+          ./hack/warm-cache ${{ matrix.target }}
+        env:
+          CACHE_FROM: type=gha,scope=${{ env.CACHE_GHA_SCOPE }}-${{ matrix.target }}
+          CACHE_TO: type=gha,scope=${{ env.CACHE_GHA_SCOPE }}-${{ matrix.target }}
+
+  validate:
+    runs-on: ubuntu-latest
+    needs:
+      - prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        script:
+          - ./hack/lint
+          - ./hack/validate-vendor
+          - ./hack/install-and-test
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v3
+      -
+        name: Expose GitHub Runtime
+        uses: crazy-max/ghaction-github-runtime@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      -
+        name: Run
+        run: |
+          ${{ matrix.script }}
+        env:
+          CACHE_FROM: type=gha,scope=${{ env.CACHE_GHA_SCOPE }}-mainline
+
+  test:
+    runs-on: ubuntu-latest
+    needs:
+      - prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - mainline
+          - buildkit
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v3
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      -
+        name: Test buildkit
+        if: matrix.target == 'buildkit'
+        uses: docker/bake-action@v2
+        with:
+          targets: buildkit-test
+          set: |
+            *.cache-from=type=gha,scope=${{ env.CACHE_GHA_SCOPE }}-${{ matrix.target }}
+      -
+        name: Load mainline for testing
+        if: matrix.target == 'mainline'
+        uses: docker/bake-action@v2
+        with:
+          targets: mainline
+          load: true
+          set: |
+            *.cache-from=type=gha,scope=${{ env.CACHE_GHA_SCOPE }}-${{ matrix.target }}
+            mainline.tags=tonistiigi/binfmt:test
+      -
+        name: Test mainline
+        if: matrix.target == 'mainline'
+        run: |
+          docker run --rm --privileged tonistiigi/binfmt:test --uninstall amd64,arm64,arm,ppc64le,s390x,riscv64
+          docker run --rm --privileged tonistiigi/binfmt:test --install all
+          docker run --rm arm64v8/alpine uname -a
+          docker run --rm arm32v7/alpine uname -a
+          docker run --rm ppc64le/alpine uname -a
+          docker run --rm s390x/alpine uname -a
+          docker run --rm tonistiigi/debian:riscv uname -a
+          docker run --rm --platform=linux/s390x s390x/ubuntu apt update
+          docker run --rm --platform=linux/ppc64le ppc64le/ubuntu apt update
+          docker run --rm --platform=linux/arm64 arm64v8/ubuntu apt update
+      -
+        name: Test Syscalls
+        if: matrix.target == 'mainline'
+        run: |
+          set -x
+          docker buildx build --platform=linux/amd64,linux/arm64,linux/386,linux/arm,linux/ppc64le,linux/s390x --target=run --allow security.insecure --build-arg CONFIG_RT_GROUP_SCHED=false ./test
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs:
+      - prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        dockerfile:
+          - pip-youtube-dl
+          - webpack
+        platform:
+          - linux/arm/v7
+        include:
+          - dockerfile: ejabberd
+            platform: linux/arm64
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v3
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      -
+        name: Load mainline for testing
+        uses: docker/bake-action@v2
+        with:
+          targets: mainline
+          load: true
+          set: |
+            *.cache-from=type=gha,scope=${{ env.CACHE_GHA_SCOPE }}-mainline
+            mainline.tags=tonistiigi/binfmt:test
+      -
+        name: Set up QEMU
+        run: |
+          docker run --privileged --rm tonistiigi/binfmt --uninstall qemu-*
+          docker run --rm --privileged tonistiigi/binfmt:test --install all
+      -
+        name: Test
+        working-directory: test/dockerfiles/${{ matrix.dockerfile }}
+        run: |
+          docker buildx build --platform ${{ matrix.platform }} --output type=cacheonly .
+
+  build:
+    runs-on: ubuntu-latest
+    needs:
+      - validate
+      - test
+      - e2e
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - mainline
+          - buildkit
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v3
+      -
+        name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REPO_SLUG }}
+          tags: |
+            type=ref,event=branch,enable=${{ matrix.target == 'mainline' }}
+            type=ref,event=branch,prefix=${{ matrix.target }}-,enable=${{ matrix.target != 'mainline' }}
+          flavor: |
+            latest=false
+          labels: |
+            org.opencontainers.image.title=Binfmt
+            org.opencontainers.image.description=Cross-platform emulator collection distributed with Docker images
+          bake-target: meta-helper
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          config: .github/buildkit.toml
+          buildkitd-flags: --allow-insecure-entitlement=security.insecure
+      -
+        name: Login to DockerHub
+        if: startsWith(github.ref, 'refs/heads/')
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERIO_USERNAME }}
+          password: ${{ secrets.DOCKERIO_PASSWORD }}
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      -
+        name: Build ${{ matrix.target }}
+        uses: docker/bake-action@v2
+        with:
+          files: |
+            ./docker-bake.hcl
+            ${{ steps.meta.outputs.bake-file }}
+          targets: ${{ matrix.target }}-all
+          push: ${{ startsWith(github.ref, 'refs/heads/') }}
+          set: |
+            *.cache-from=type=gha,scope=${{ env.CACHE_GHA_SCOPE_CROSS }}-${{ matrix.target }}
+            *.cache-from=type=gha,scope=${{ env.CACHE_GHA_SCOPE }}-${{ matrix.target }}
+            *.cache-to=type=gha,scope=${{ env.CACHE_GHA_SCOPE_CROSS }}-${{ matrix.target }}

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+. $(dirname $0)/util
+set -eu
+
+output=$(mktemp -d -t binfmt-output.XXXXXXXXXX)
+
+buildxCmd build \
+  --target "update" \
+  --output "type=local,dest=$output" \
+  --file "./hack/dockerfiles/vendor.Dockerfile" \
+  .
+
+rm -rf ./vendor
+cp -R "$output"/* .
+rm -rf $output

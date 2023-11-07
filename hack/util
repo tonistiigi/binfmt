@@ -1,0 +1,42 @@
+#!/usr/bin/env sh
+export BUILDX_NO_DEFAULT_LOAD=true
+
+: ${CI=}
+: ${GITHUB_ACTIONS=}
+: ${CACHE_FROM=}
+: ${CACHE_TO=}
+
+progressFlag=""
+if [ "$CI" = "true" ]; then
+  progressFlag="--progress=plain"
+fi
+
+buildxCmd() {
+  if docker buildx version >/dev/null 2>&1; then
+    set -x
+    docker buildx "$@" $progressFlag
+  elif buildx version >/dev/null 2>&1; then
+    set -x
+    buildx "$@" $progressFlag
+  elif docker version >/dev/null 2>&1; then
+    set -x
+    DOCKER_BUILDKIT=1 docker "$@" $progressFlag
+  else
+    echo >&2 "ERROR: Please enable DOCKER_BUILDKIT or install standalone buildx"
+    exit 1
+  fi
+}
+
+setFlags=""
+if [ "$GITHUB_ACTIONS" = "true" ]; then
+  if [ -n "$CACHE_FROM" ]; then
+    for cfrom in $CACHE_FROM; do
+      setFlags="${setFlags}--set=*.cache-from=$cfrom "
+    done
+  fi
+  if [ -n "$CACHE_TO" ]; then
+    for cto in $CACHE_TO; do
+      setFlags="${setFlags}--set=*.cache-to=$cto "
+    done
+  fi
+fi

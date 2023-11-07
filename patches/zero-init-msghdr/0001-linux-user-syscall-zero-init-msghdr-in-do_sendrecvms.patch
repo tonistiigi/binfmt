@@ -1,0 +1,39 @@
+From f65184448e50e5e936fe36167c2e546491a23f03 Mon Sep 17 00:00:00 2001
+From: Kenta Iwasaki <kenta@lithdew.net>
+Date: Sun, 16 May 2021 18:15:36 +0900
+Subject: [PATCH] linux-user/syscall: zero-init msghdr in do_sendrecvmsg_locked
+
+The mixing of libc and kernel versions of the layout of the `msghdr`
+struct causes EMSGSIZE to be returned by sendmsg if the `msghdr` struct
+is not zero-initialized (such that padding bytes comprise of
+uninitialized memory).
+
+Other parts of the QEMU codebase appear to zero-initialize the `msghdr`
+struct to workaround these struct layout issues, except for
+do_sendrecvmsg_locked in linux-user/syscall.c.
+
+This patch zero-initializes the `msghdr` struct in
+do_sendrecvmsg_locked.
+
+Signed-off-by: Kenta Iwasaki <kenta@lithdew.net>
+Message-Id: <20210516091536.1042693-1-kenta@lithdew.net>
+---
+ linux-user/syscall.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/linux-user/syscall.c b/linux-user/syscall.c
+index 95d79ddc43..f60b7e04d5 100644
+--- a/linux-user/syscall.c
++++ b/linux-user/syscall.c
+@@ -3337,7 +3337,7 @@ static abi_long do_sendrecvmsg_locked(int fd, struct target_msghdr *msgp,
+                                       int flags, int send)
+ {
+     abi_long ret, len;
+-    struct msghdr msg;
++    struct msghdr msg = { 0 };
+     abi_ulong count;
+     struct iovec *vec;
+     abi_ulong target_vec;
+-- 
+2.24.3 (Apple Git-128)
+
