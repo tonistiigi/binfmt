@@ -1,0 +1,35 @@
+From fb2d9448acae73a193aede5b6c966e2e578987e6 Mon Sep 17 00:00:00 2001
+From: CrazyMax <crazy-max@users.noreply.github.com>
+Date: Thu, 11 May 2023 18:23:03 +0200
+Subject: [PATCH] linux-user: pass SUBREAPER to prctl
+
+Reaper status can be aquired by using prctl() with
+PR_*_CHILD_SUBREAPER on linux. Signal will be delivered
+to every descendant process.
+
+Signed-off-by: CrazyMax <crazy-max@users.noreply.github.com>
+---
+ linux-user/syscall.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/linux-user/syscall.c b/linux-user/syscall.c
+index b8a75f35d2..4c66d9fe37 100644
+--- a/linux-user/syscall.c
++++ b/linux-user/syscall.c
+@@ -6548,11 +6548,11 @@ static abi_long do_prctl(CPUArchState *env, abi_long option, abi_long arg2,
+     case PR_SET_NO_NEW_PRIVS:
+     case PR_GET_IO_FLUSHER:
+     case PR_SET_IO_FLUSHER:
++    case PR_GET_CHILD_SUBREAPER:
++    case PR_SET_CHILD_SUBREAPER:
+         /* Some prctl options have no pointer arguments and we can pass on. */
+         return get_errno(prctl(option, arg2, arg3, arg4, arg5));
+ 
+-    case PR_GET_CHILD_SUBREAPER:
+-    case PR_SET_CHILD_SUBREAPER:
+     case PR_GET_SPECULATION_CTRL:
+     case PR_SET_SPECULATION_CTRL:
+     case PR_GET_TID_ADDRESS:
+-- 
+2.34.0
+
