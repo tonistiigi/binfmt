@@ -77,6 +77,18 @@ target "buildkit-test" {
   tags = []
 }
 
+target "desktop" {
+  inherits = ["mainline"]
+  args = {
+    QEMU_PATCHES = "${QEMU_PATCHES},subreaper-prctl"
+  }
+  cache-from = ["${REPO}:desktop-master"]
+}
+
+target "desktop-all" {
+  inherits = ["desktop", "all-arch"]
+}
+
 target "archive" {
   inherits = ["mainline"]
   target = "archive"
