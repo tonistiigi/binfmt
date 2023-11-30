@@ -12,8 +12,6 @@ on:
     branches:
       - master
   pull_request:
-    branches:
-      - master
 
 env:
   REPO_SLUG: tonistiigi/binfmt
@@ -29,6 +27,7 @@ jobs:
         target:
           - mainline
           - buildkit
+          - desktop
     steps:
       -
         name: Checkout
@@ -85,6 +84,7 @@ jobs:
         target:
           - mainline
           - buildkit
+          - desktop
     steps:
       -
         name: Checkout
@@ -138,14 +138,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        target:
+          - mainline
+          - desktop
         dockerfile:
           - pip-youtube-dl
           - webpack
         platform:
           - linux/arm/v7
         include:
-          - dockerfile: ejabberd
+          - target: mainline
+            dockerfile: ejabberd
             platform: linux/arm64
+          - target: desktop
+            dockerfile: tini
+            platform: linux/arm64
+            run: true
     steps:
       -
         name: Checkout
@@ -154,14 +162,14 @@ jobs:
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       -
-        name: Load mainline for testing
+        name: Load for testing
         uses: docker/bake-action@v2
         with:
-          targets: mainline
+          targets: ${{ matrix.target }}
           load: true
           set: |
-            *.cache-from=type=gha,scope=${{ env.CACHE_GHA_SCOPE }}-mainline
-            mainline.tags=tonistiigi/binfmt:test
+            *.cache-from=type=gha,scope=${{ env.CACHE_GHA_SCOPE }}-${{ matrix.target }}
+            *.tags=tonistiigi/binfmt:test
       -
         name: Set up QEMU
         run: |
@@ -172,6 +180,18 @@ jobs:
         working-directory: test/dockerfiles/${{ matrix.dockerfile }}
         run: |
           docker buildx build --platform ${{ matrix.platform }} --output type=cacheonly .
+      -
+        name: Load image
+        if: ${{ matrix.run }}
+        working-directory: test/dockerfiles/${{ matrix.dockerfile }}
+        run: |
+          docker buildx build --platform ${{ matrix.platform }} -t ${{ matrix.dockerfile }}:local --load .
+      -
+        name: Run
+        if: ${{ matrix.run }}
+        working-directory: test/dockerfiles/${{ matrix.dockerfile }}
+        run: |
+          docker run --rm --platform ${{ matrix.platform }} ${{ matrix.dockerfile }}:local
 
   build:
     runs-on: ubuntu-latest
@@ -185,6 +205,7 @@ jobs:
         target:
           - mainline
           - buildkit
+          - desktop
     steps:
       -
         name: Checkout
