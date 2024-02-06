@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/containerd/containerd v1.7.2
-	github.com/moby/buildkit v0.12.3
+	github.com/moby/buildkit v0.12.5
 	github.com/opencontainers/image-spec v1.1.0-rc3
 	github.com/pkg/errors v0.9.1
 )
