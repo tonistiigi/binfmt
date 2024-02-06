@@ -1,8 +1,9 @@
 # Binfmt
 
-[![CI Status](https://github.com/tonistiigi/binfmt/actions/workflows/ci.yml/badge.svg)](https://github.com/tonistiigi/binfmt/actions/workflows/ci.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/tonistiigi/binfmt)](https://goreportcard.com/report/github.com/tonistiigi/binfmt)
-[![Docker Pulls](https://img.shields.io/docker/pulls/tonistiigi/binfmt.svg?logo=docker)](https://hub.docker.com/r/tonistiigi/binfmt/)
+[![GitHub release](https://img.shields.io/github/release/tonistiigi/binfmt.svg?style=flat-square)](https://github.com/tonistiigi/binfmt/releases/latest)
+[![CI Status](https://img.shields.io/github/actions/workflow/status/tonistiigi/binfmt/ci.yml?label=ci&logo=github&style=flat-square)](https://github.com/tonistiigi/binfmt/actions?query=workflow%3Aci)
+[![Go Report Card](https://goreportcard.com/badge/github.com/tonistiigi/binfmt?style=flat-square)](https://goreportcard.com/report/github.com/tonistiigi/binfmt)
+[![Docker Pulls](https://img.shields.io/docker/pulls/tonistiigi/binfmt.svg?style=flat-square&logo=docker)](https://hub.docker.com/r/tonistiigi/binfmt/)
 
 Cross-platform emulator collection distributed with Docker images.
 
