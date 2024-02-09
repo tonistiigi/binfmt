@@ -119,15 +119,16 @@ jobs:
           set: |
             *.cache-from=${{ env.REPO_SLUG }}:${{ steps.prep.outputs.tag_prefix }}${{ github.event.inputs.qemu_version }},${{ env.REPO_SLUG }}:${{ steps.prep.outputs.tag_prefix }}master
             *.cache-from=type=gha,scope=${{ env.CACHE_GHA_SCOPE_CROSS }}-${{ github.event.inputs.target }}
+            *.output=type=local,dest=./bin,platform-split=false
         env:
           REPO: ${{ env.REPO_SLUG }}
           QEMU_REPO: ${{ steps.prep.outputs.repo }}
           QEMU_VERSION: ${{ steps.prep.outputs.ref }}
       -
-        name: Move artifacts
+        name: List artifacts
         if: github.event.inputs.target == 'mainline'
         run: |
-          mv ./bin/**/* ./bin/
+          tree -nh ./bin
       -
         name: Create Release
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844  # v0.1.15
