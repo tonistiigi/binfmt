@@ -80,7 +80,7 @@ target "buildkit-test" {
 target "desktop" {
   inherits = ["mainline"]
   args = {
-    QEMU_PATCHES = "${QEMU_PATCHES},subreaper-prctl"
+    QEMU_PATCHES = "${QEMU_PATCHES},subreaper-prctl,pretcode"
   }
   cache-from = ["${REPO}:desktop-master"]
 }
