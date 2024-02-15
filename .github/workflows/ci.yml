@@ -154,7 +154,13 @@ jobs:
           - target: desktop
             dockerfile: tini
             platform: linux/arm64
-            run: true
+            run_args: --rm
+          - target: desktop
+            dockerfile: postgis
+            platform: linux/arm64
+            run_args: -d --name postgis
+            logs_ctn_name: postgis
+            logs_check: "UTC [1] LOG:  database system is ready to accept connections"
     steps:
       -
         name: Checkout
@@ -183,16 +189,24 @@ jobs:
           docker buildx build --platform ${{ matrix.platform }} --output type=cacheonly .
       -
         name: Load image
-        if: ${{ matrix.run }}
+        if: ${{ matrix.run_args != '' }}
         working-directory: test/dockerfiles/${{ matrix.dockerfile }}
         run: |
           docker buildx build --platform ${{ matrix.platform }} -t ${{ matrix.dockerfile }}:local --load .
       -
         name: Run
-        if: ${{ matrix.run }}
+        if: ${{ matrix.run_args != '' }}
         working-directory: test/dockerfiles/${{ matrix.dockerfile }}
         run: |
-          docker run --rm --platform ${{ matrix.platform }} ${{ matrix.dockerfile }}:local
+          docker run ${{ matrix.run_args }} --platform ${{ matrix.platform }} ${{ matrix.dockerfile }}:local
+      -
+        name: Check container logs
+        if: ${{ matrix.logs_ctn_name != '' && matrix.logs_check != '' }}
+        uses: crazy-max/.github/.github/actions/container-logs-check@main
+        with:
+          container_name: ${{ matrix.logs_ctn_name }}
+          log_check: ${{ matrix.logs_check }}
+          timeout: 120
 
   build:
     runs-on: ubuntu-latest
