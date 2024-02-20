@@ -54,6 +54,21 @@ docker run --privileged --rm tonistiigi/binfmt --install all
 docker run --privileged --rm tonistiigi/binfmt --install arm64,riscv64,arm
 ```
 
+## Installing emulators from Docker-Compose
+
+```docker
+version: "3"
+services:
+  emulator:
+    image: tonistiigi/binfmt
+    container_name: emulator
+    privileged: true
+    command: --install all
+    network_mode: bridge
+    restart: "no"
+```
+Only use container `restart-policy` as `no`, otherwise docker will keep restarting the container.
+
 ## Uninstalling emulators
 
 ```bash
