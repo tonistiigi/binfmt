@@ -3,11 +3,13 @@
 . $(dirname $0)/util
 set -eu
 
+REPO_SLUG=${REPO_SLUG:-tonistiigi/binfmt}
+
 TAG=${TAG:-test} buildxCmd bake $setFlags --load mainline
 
 set -o pipefail -x
-docker run --rm --privileged tonistiigi/binfmt:${TAG:-test} --uninstall qemu-*
-status=$(docker run --rm --privileged tonistiigi/binfmt:${TAG:-test} --install all)
+docker run --rm --privileged ${REPO_SLUG}:${TAG:-test} --uninstall qemu-*
+status=$(docker run --rm --privileged ${REPO_SLUG}:${TAG:-test} --install all)
 
 echo $status | jq .supported | grep linux/arm64
 echo $status | jq .supported | grep linux/amd64
@@ -29,7 +31,7 @@ docker run --rm tonistiigi/debian:riscv uname -a
 
 if [ "$(uname -m)" != "x86_64" ]; then exit 0; fi
 
-status=$(docker run --rm --privileged tonistiigi/binfmt:${TAG:-test} --uninstall aarch64,riscv64)
+status=$(docker run --rm --privileged ${REPO_SLUG}:${TAG:-test} --uninstall aarch64,riscv64)
 
 if echo $status | jq .supported | grep linux/arm64; then exit 1; fi
 if echo $status | jq .supported | grep linux/riscv64; then exit 1; fi
@@ -43,7 +45,7 @@ if echo $status | jq .emulators | grep riscv64; then exit 1; fi
 
 if docker run --rm arm64v8/alpine uname -a 2>/dev/null; then exit 1; fi
 
-docker run --rm --privileged tonistiigi/binfmt:${TAG:-test} --install arm64
+docker run --rm --privileged ${REPO_SLUG}:${TAG:-test} --install arm64
 docker run --rm arm64v8/alpine uname -a
 
-docker run --rm --privileged tonistiigi/binfmt:${TAG:-test} --install riscv64
+docker run --rm --privileged ${REPO_SLUG}:${TAG:-test} --install riscv64
