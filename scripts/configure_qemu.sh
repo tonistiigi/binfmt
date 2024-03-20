@@ -2,41 +2,39 @@
 
 set -e
 
-: "${QEMU_TARGETS=}"
+: "${QEMU_TARGETS_EXCLUDE=}"
 
 arch="$(xx-info arch)"
 
-if [ -z "$QEMU_TARGETS" ]; then
-  if [ "$arch" != "amd64" ]; then
-    QEMU_TARGETS="$QEMU_TARGETS x86_64-linux-user"
-  fi
-  if [ "$arch" != "arm64" ]; then
-    QEMU_TARGETS="$QEMU_TARGETS aarch64-linux-user"
-  fi
-  if [ "$arch" != "arm" ]; then
-    QEMU_TARGETS="$QEMU_TARGETS arm-linux-user"
-  fi
-  if [ "$arch" != "riscv64" ]; then
-    QEMU_TARGETS="$QEMU_TARGETS riscv64-linux-user"
-  fi
-  if [ "$arch" != "ppc64le" ]; then
-    QEMU_TARGETS="$QEMU_TARGETS ppc64le-linux-user"
-  fi
-  if [ "$arch" != "s390x" ]; then
-    QEMU_TARGETS="$QEMU_TARGETS s390x-linux-user"
-  fi
-  if [ "$arch" != "386" ] ; then
-    QEMU_TARGETS="$QEMU_TARGETS i386-linux-user"
-  fi
-  if [ "$arch" != "mips64le" ] ; then
-    QEMU_TARGETS="$QEMU_TARGETS mips64el-linux-user"
-  fi
-  if [ "$arch" != "mips64" ] ; then
-    QEMU_TARGETS="$QEMU_TARGETS mips64-linux-user"
-  fi
-  if [ "$arch" != "loong64" ] ; then
-    QEMU_TARGETS="$QEMU_TARGETS loongarch64-linux-user"
-  fi
+if [ "$arch" = "amd64" ]; then
+  QEMU_TARGETS_EXCLUDE="$QEMU_TARGETS_EXCLUDE x86_64-linux-user"
+fi
+if [ "$arch" = "arm64" ]; then
+  QEMU_TARGETS_EXCLUDE="$QEMU_TARGETS_EXCLUDE aarch64-linux-user"
+fi
+if [ "$arch" = "arm" ]; then
+  QEMU_TARGETS_EXCLUDE="$QEMU_TARGETS_EXCLUDE arm-linux-user"
+fi
+if [ "$arch" = "riscv64" ]; then
+  QEMU_TARGETS_EXCLUDE="$QEMU_TARGETS_EXCLUDE riscv64-linux-user"
+fi
+if [ "$arch" = "ppc64le" ]; then
+  QEMU_TARGETS_EXCLUDE="$QEMU_TARGETS_EXCLUDE ppc64le-linux-user"
+fi
+if [ "$arch" = "s390x" ]; then
+  QEMU_TARGETS_EXCLUDE="$QEMU_TARGETS_EXCLUDE s390x-linux-user"
+fi
+if [ "$arch" = "386" ] ; then
+  QEMU_TARGETS_EXCLUDE="$QEMU_TARGETS_EXCLUDE i386-linux-user"
+fi
+if [ "$arch" = "mips64le" ] ; then
+  QEMU_TARGETS_EXCLUDE="$QEMU_TARGETS_EXCLUDE mips64el-linux-user"
+fi
+if [ "$arch" = "mips64" ] ; then
+  QEMU_TARGETS_EXCLUDE="$QEMU_TARGETS_EXCLUDE mips64-linux-user"
+fi
+if [ "$arch" = "loong64" ] ; then
+  QEMU_TARGETS_EXCLUDE="$QEMU_TARGETS_EXCLUDE loongarch64-linux-user"
 fi
 
 set -x
@@ -76,4 +74,4 @@ set -x
   --build=$(TARGETPLATFORM= TARGETPAIR= xx-clang --print-target-triple) \
   --cc=$(xx-clang --print-target-triple)-clang \
   --extra-ldflags=-latomic \
-  --target-list="$QEMU_TARGETS"
+  --target-list-exclude="$QEMU_TARGETS_EXCLUDE"
