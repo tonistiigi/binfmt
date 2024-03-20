@@ -3,7 +3,7 @@
 . $(dirname $0)/util
 set -eu
 
-REPO_SLUG=${REPO_SLUG:-tonistiigi/binfmt}
+REPO_SLUG=${REPO_SLUG:-vicamo/binfmt}
 TAG=${TAG:-test}
 
 buildxCmd bake $setFlags --load mainline
