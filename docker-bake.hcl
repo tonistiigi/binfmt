@@ -1,5 +1,5 @@
 variable "REPO" {
-  default = "tonistiigi/binfmt"
+  default = "vicamo/binfmt"
 }
 variable "QEMU_REPO" {
   default = "https://github.com/qemu/qemu"

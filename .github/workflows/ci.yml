@@ -14,7 +14,7 @@ on:
   pull_request:
 
 env:
-  REPO_SLUG: tonistiigi/binfmt
+  REPO_SLUG: vicamo/binfmt
   CACHE_GHA_SCOPE: binfmt
   CACHE_GHA_SCOPE_CROSS: binfmt-cross
 
