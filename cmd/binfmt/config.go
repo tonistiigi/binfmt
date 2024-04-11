@@ -4,11 +4,7 @@
 package main
 
 import (
-	"log"
 	"os"
-
-	"github.com/containerd/containerd/platforms"
-	"github.com/moby/buildkit/util/archutil"
 )
 
 // https://github.com/qemu/qemu/blob/master/scripts/qemu-binfmt-conf.sh
@@ -129,27 +125,15 @@ var configs = map[string]config{
 }
 
 func allArch() []string {
-	m := map[string]struct{}{}
-	for _, pp := range formatPlatforms(archutil.SupportedPlatforms(true)) {
-		p, err := platforms.Parse(pp)
-		if err == nil {
-			m[p.Architecture] = struct{}{}
-		} else {
-			log.Printf("error: %+v", err)
-		}
-	}
-
 	out := make([]string, 0, len(configs))
 	for name := range configs {
-		if _, ok := m[name]; !ok {
-			if _, fullPath, err := getBinaryNames(configs[name]); err == nil {
-				if _, err := os.Stat(fullPath); err == nil {
-					out = append(out, name)
-				}
-			} else {
-				// Make sure install() will print the error
+		if _, fullPath, err := getBinaryNames(configs[name]); err == nil {
+			if _, err := os.Stat(fullPath); err == nil {
 				out = append(out, name)
 			}
+		} else {
+			// Make sure install() will print the error
+			out = append(out, name)
 		}
 	}
 	return out
