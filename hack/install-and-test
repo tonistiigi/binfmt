@@ -41,7 +41,7 @@ echo $status | jq .supported | grep linux/arm/v7
 
 echo $status | jq .emulators | grep qemu-arm
 echo $status | jq .emulators | grep qemu-ppc64le
-if echo $status | jq .emulators | grep aarch64; then exit 1; fi
+if echo $status | jq .emulators | grep -w aarch64; then exit 1; fi
 if echo $status | jq .emulators | grep riscv64; then exit 1; fi
 
 if docker run --rm arm64v8/alpine uname -a 2>/dev/null; then exit 1; fi
