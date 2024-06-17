@@ -93,7 +93,7 @@ jobs:
           password: ${{ secrets.DOCKERIO_PASSWORD }}
       -
         name: Build image
-        uses: docker/bake-action@v4
+        uses: docker/bake-action@v5
         with:
           files: |
             ./docker-bake.hcl
@@ -109,7 +109,7 @@ jobs:
           QEMU_VERSION: ${{ steps.prep.outputs.ref }}
       -
         name: Build artifacts
-        uses: docker/bake-action@v4
+        uses: docker/bake-action@v5
         if: github.event.inputs.target == 'mainline'
         with:
           files: |
