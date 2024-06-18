@@ -95,7 +95,7 @@ jobs:
       -
         name: Test buildkit
         if: matrix.target == 'buildkit'
-        uses: docker/bake-action@v4
+        uses: docker/bake-action@v5
         with:
           targets: buildkit-test
           set: |
@@ -103,7 +103,7 @@ jobs:
       -
         name: Load mainline for testing
         if: matrix.target == 'mainline'
-        uses: docker/bake-action@v4
+        uses: docker/bake-action@v5
         with:
           targets: mainline
           load: true
@@ -170,7 +170,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
       -
         name: Load for testing
-        uses: docker/bake-action@v4
+        uses: docker/bake-action@v5
         with:
           targets: ${{ matrix.target }}
           load: true
@@ -258,7 +258,7 @@ jobs:
         uses: docker/setup-qemu-action@v3
       -
         name: Build ${{ matrix.target }}
-        uses: docker/bake-action@v4
+        uses: docker/bake-action@v5
         with:
           files: |
             ./docker-bake.hcl
