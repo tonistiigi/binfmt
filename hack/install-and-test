@@ -13,6 +13,7 @@ echo $status | jq .supported | grep linux/arm64
 echo $status | jq .supported | grep linux/amd64
 echo $status | jq .supported | grep linux/arm/v7
 echo $status | jq .supported | grep linux/arm/v6
+echo $status | jq .supported | grep linux/loong64
 echo $status | jq .supported | grep linux/riscv64
 echo $status | jq .supported | grep linux/ppc64le
 echo $status | jq .supported | grep linux/386
