@@ -131,7 +131,7 @@ jobs:
           tree -nh ./bin
       -
         name: Create Release
-        uses: softprops/action-gh-release@a74c6b72af54cfa997e81df42d94703d6313a2d0  # v2.0.6
+        uses: softprops/action-gh-release@fb2d03176f42a1f0dd433ca263f314051d3edd44  # v2.0.7
         if: github.event.inputs.dry-run != 'true'
         with:
           name: ${{ steps.prep.outputs.git_tag }}
