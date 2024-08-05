@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+
 export BUILDX_NO_DEFAULT_LOAD=true
 
 : ${CI=}
@@ -13,13 +14,13 @@ fi
 
 buildxCmd() {
   if docker buildx version >/dev/null 2>&1; then
-    set -x
+    # set -x
     docker buildx "$@" $progressFlag
   elif buildx version >/dev/null 2>&1; then
-    set -x
+    # set -x
     buildx "$@" $progressFlag
   elif docker version >/dev/null 2>&1; then
-    set -x
+    # set -x
     DOCKER_BUILDKIT=1 docker "$@" $progressFlag
   else
     echo >&2 "ERROR: Please enable DOCKER_BUILDKIT or install standalone buildx"
@@ -40,3 +41,58 @@ if [ "$GITHUB_ACTIONS" = "true" ]; then
     done
   fi
 fi
+
+bail() {
+  CODE=$1
+  shift
+
+  echo "ERROR: $*"
+
+  exit $CODE
+}
+
+checkMatch() {
+  NEEDLE=$1
+  shift
+  HAYSTACK="$*"
+
+  if [ "$(echo "${HAYSTACK}" | grep -w "${NEEDLE}")" != "" ]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+checkPlatform() {
+  PLATFORM=$1
+  IMAGE=$2
+  EXPECTED_RESULT=$3
+
+  RESULT=$(docker run --rm --platform "${PLATFORM}" "${IMAGE}" uname -m 2>&1)
+
+  if [ "${RESULT}" = "${EXPECTED_RESULT}" ]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+printOK() {
+  CATEGORY=$1
+  shift
+  MESSAGE=$*
+
+  echo "${CATEGORY}: ${MESSAGE} OK"
+}
+
+printEmulated() {
+  MESSAGE=$*
+
+  printOK emulated "${MESSAGE}"
+}
+
+printSupported() {
+  MESSAGE=$*
+
+  printOK supported "${MESSAGE}"
+}

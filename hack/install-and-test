@@ -1,49 +1,76 @@
 #!/usr/bin/env bash
 
-. $(dirname $0)/util
+. "$(dirname "$0")/util"
+
 set -eu
 
 TAG=${TAG:-test} buildxCmd bake $setFlags --load mainline
 
-set -o pipefail -x
-docker run --rm --privileged tonistiigi/binfmt:${TAG:-test} --uninstall qemu-*
-status=$(docker run --rm --privileged tonistiigi/binfmt:${TAG:-test} --install all)
+set -o pipefail
 
-echo $status | jq .supported | grep linux/arm64
-echo $status | jq .supported | grep linux/amd64
-echo $status | jq .supported | grep linux/arm/v7
-echo $status | jq .supported | grep linux/arm/v6
-echo $status | jq .supported | grep linux/riscv64
-echo $status | jq .supported | grep linux/ppc64le
-echo $status | jq .supported | grep linux/386
+echo "operation: uninstalling handlers..."
+docker run --rm --privileged "tonistiigi/binfmt:${TAG:-test}" --uninstall qemu-*
 
-echo $status | jq .emulators | grep qemu-riscv64
-echo $status | jq .emulators | grep qemu-arm
+echo "operation: installing all handlers..."
+status=$(docker run --rm --privileged "tonistiigi/binfmt:${TAG:-test}" --install all)
+supported=$(echo "${status}" | jq -r '.supported[]' | xargs)
+emulators=$(echo "${status}" | jq -r '.emulators[]' | xargs)
 
-docker run --rm arm64v8/alpine uname -a
-docker run --rm arm32v7/alpine uname -a
-docker run --rm ppc64le/alpine uname -a
-docker run --rm s390x/alpine uname -a
-docker run --rm i386/alpine uname -a
-docker run --rm tonistiigi/debian:riscv uname -a
+if checkMatch linux/arm64 "${supported}"; then printSupported "linux/arm64"; fi
+if checkMatch linux/amd64 "${supported}"; then printSupported "linux/amd64"; fi
+if checkMatch linux/arm/v6 "${supported}"; then printSupported "linux/arm/v6"; fi
+if checkMatch linux/arm/v7 "${supported}"; then printSupported "linux/arm/v7"; fi
+if checkMatch linux/ppc64le "${supported}"; then printSupported "linux/ppc64le"; fi
+if checkMatch linux/riscv64 "${supported}"; then printSupported "linux/riscv64"; fi
+if checkMatch linux/386 "${supported}"; then printSupported "linux/386"; fi
 
-if [ "$(uname -m)" != "x86_64" ]; then exit 0; fi
+if checkMatch qemu-arm "${emulators}"; then printEmulated "qemu-arm"; fi
+if checkMatch qemu-riscv64 "${emulators}"; then printEmulated "qemu-riscv64"; fi
 
-status=$(docker run --rm --privileged tonistiigi/binfmt:${TAG:-test} --uninstall aarch64,riscv64)
+if ! checkPlatform linux/386 i386/alpine x86_64; then bail 254 "Mismatching platform for 386"; fi
+if ! checkPlatform linux/arm64/v8 arm64v8/alpine aarch64; then bail 253 "Mismatching platform for arm64v8"; fi
+if ! checkPlatform linux/arm/v6 arm32v6/alpine armv7l; then bail 252 "Mismatching platform for arm32v6"; fi
+if ! checkPlatform linux/arm/v7 arm32v7/alpine armv7l; then bail 251 "Mismatching platform for arm32v7"; fi
+if ! checkPlatform linux/ppc64le ppc64le/alpine ppc64le; then bail 250 "Mismatching platform for ppc64le"; fi
+if ! checkPlatform linux/s390x s390x/alpine s390x; then bail 249 "Mismatching platform for s390x"; fi
+if ! checkPlatform linux/riscv64 riscv64/alpine riscv64; then bail 248 "Mismatching platform for riscv64"; fi
 
-if echo $status | jq .supported | grep linux/arm64; then exit 1; fi
-if echo $status | jq .supported | grep linux/riscv64; then exit 1; fi
-echo $status | jq .supported | grep linux/ppc64le
-echo $status | jq .supported | grep linux/arm/v7
+if [ "$(uname -m)" != "x86_64" ]; then bail 0 "$(basename "$0") is not running on x86_64 architecture"; fi
 
-echo $status | jq .emulators | grep qemu-arm
-echo $status | jq .emulators | grep qemu-ppc64le
-if echo $status | jq .emulators | grep aarch64; then exit 1; fi
-if echo $status | jq .emulators | grep riscv64; then exit 1; fi
+echo "operation: uninstalling aarch64 and riscv64 handler"
+status=$(docker run --rm --privileged "tonistiigi/binfmt:${TAG:-test}" --uninstall aarch64,riscv64)
+supported=$(echo "${status}" | jq -r '.supported[]' | xargs)
+emulators=$(echo "${status}" | jq -r '.emulators[]' | xargs)
 
-if docker run --rm arm64v8/alpine uname -a 2>/dev/null; then exit 1; fi
+if checkMatch "linux/arm64 ${supported}"; then bail 247 "linux/arm64 should not be supported"; fi
+if checkMatch "linux/riscv64 ${supported}"; then bail 246 "linux/riscv64 should not be supported"; fi
 
-docker run --rm --privileged tonistiigi/binfmt:${TAG:-test} --install arm64
-docker run --rm arm64v8/alpine uname -a
+if checkMatch linux/arm/v6 "${supported}"; then printSupported "linux/arm/v6"; fi
+if checkMatch linux/arm/v7 "${supported}"; then printSupported "linux/arm/v7"; fi
+if checkMatch linux/ppc64le "${supported}"; then printSupported "linux/ppc64le"; fi
 
-docker run --rm --privileged tonistiigi/binfmt:${TAG:-test} --install riscv64
+if checkMatch qemu-aarch64 "${emulators}"; then bail 245 "qemu-aarch64 should not be supported"; fi
+if checkMatch qemu-riscv64 "${emulators}"; then bail 244 "qemu-riscv64 should not be supported"; fi
+
+if checkMatch qemu-arm "${supported}"; then printEmulated "qemu-arm"; fi
+if checkMatch qemu-ppc64le "${supported}"; then printEmulated "qemu-ppc64le"; fi
+
+if docker run --rm --platform linux/arm64/v8 arm64v8/alpine uname -m 2>/dev/null; then bail 243 "unexpected uname error in linux/arm64/v8"; fi
+
+echo "operation: installing arm64 handler..."
+docker run --rm --privileged "tonistiigi/binfmt:${TAG:-test}" --install arm64
+
+if ! checkPlatform linux/arm64/v8 arm64v8/alpine aarch64; then
+  bail 242 "Mismatching platform for arm64v8"
+else
+  printSupported "linux/arm64/v8"
+fi
+
+echo "operation: installing riscv64 handler..."
+docker run --rm --privileged "tonistiigi/binfmt:${TAG:-test}" --install riscv64
+
+if ! checkPlatform linux/riscv64 riscv64/alpine riscv64; then
+  bail 241 "Mismatching platform for riscv64"
+else
+  printSupported "linux/riscv64"
+fi

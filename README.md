@@ -67,6 +67,7 @@ services:
     network_mode: bridge
     restart: "no"
 ```
+
 Only use container `restart-policy` as `no`, otherwise docker will keep restarting the container.
 
 ## Uninstalling emulators
@@ -88,6 +89,7 @@ docker run --privileged --rm tonistiigi/binfmt --uninstall qemu-*
 ```bash
 docker run --privileged --rm tonistiigi/binfmt --version
 ```
+
 ```
 binfmt/9a44d27 qemu/v6.0.0 go/1.15.11
 ```
@@ -111,11 +113,11 @@ binfmt/9a44d27 qemu/v6.0.0 go/1.15.11
 ## Test current emulation support
 
 ```
-docker run --rm arm64v8/alpine uname -a
-docker run --rm arm32v7/alpine uname -a
-docker run --rm ppc64le/alpine uname -a
-docker run --rm s390x/alpine uname -a
-docker run --rm tonistiigi/debian:riscv uname -a
+docker run --rm --platform linux/arm64/v8 arm64v8/alpine uname -a
+docker run --rm --platform linux/arm/v7 arm32v7/alpine uname -a
+docker run --rm --platform linux/ppc64le ppc64le/alpine uname -a
+docker run --rm --platform linux/s390x s390x/alpine uname -a
+docker run --rm --platform linux/riscv64 riscv64/alpine uname -a
 ```
 
 ## `buildkit` target
