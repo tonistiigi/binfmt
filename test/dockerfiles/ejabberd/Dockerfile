@@ -1,4 +1,5 @@
 FROM alpine:3.15.4 AS build
+ENV QEMU_STRACE=1
 ARG REPOSITORY=https://github.com/processone/ejabberd.git
 #ARG VERSION=master
 ARG VERSION=99d9e315a3c0524d84197e63741790d5893c51f4

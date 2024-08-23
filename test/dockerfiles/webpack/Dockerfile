@@ -1,4 +1,5 @@
 FROM node:12-slim
+ENV QEMU_STRACE=1
 
 WORKDIR /js
 

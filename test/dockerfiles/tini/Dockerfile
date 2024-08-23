@@ -3,6 +3,7 @@
 ARG TINI_VERSION="v0.19.0"
 
 FROM alpine:3.17
+ENV QEMU_STRACE=1
 RUN apk add --no-cache file wget
 ARG TINI_VERSION
 ARG TARGETPLATFORM

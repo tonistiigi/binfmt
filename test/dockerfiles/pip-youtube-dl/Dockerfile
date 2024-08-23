@@ -3,6 +3,7 @@
 #
 
 FROM python:3.9-alpine
+ENV QEMU_STRACE=1
 MAINTAINER kev <noreply@easypi.pro>
 
 RUN set -xe \
