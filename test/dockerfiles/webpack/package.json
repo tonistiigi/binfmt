@@ -4,7 +4,7 @@
   "main": "app.js",
   "author": "Michal Hozza",
   "devDependencies": {
-    "webpack": "^4.43.0",
+    "webpack": "^5.94.0",
     "webpack-cli": "^3.3.12"
   }
 }
