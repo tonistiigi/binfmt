@@ -4,7 +4,7 @@ ARG GO_VERSION=1.21
 ARG ALPINE_VERSION=3.20
 ARG XX_VERSION=1.4.0
 
-ARG QEMU_VERSION=HEAD
+ARG QEMU_VERSION=master
 ARG QEMU_REPO=https://github.com/qemu/qemu
 
 # xx is a helper for cross-compilation
@@ -16,7 +16,8 @@ RUN apk add --no-cache git patch
 WORKDIR /src
 ARG QEMU_VERSION
 ARG QEMU_REPO
-RUN git clone $QEMU_REPO && cd qemu && git checkout $QEMU_VERSION
+
+ADD --keep-git-dir ${QEMU_REPO}.git#${QEMU_VERSION} ./qemu
 COPY patches patches
 # QEMU_PATCHES defines additional patches to apply before compilation
 ARG QEMU_PATCHES=cpu-max-arm
