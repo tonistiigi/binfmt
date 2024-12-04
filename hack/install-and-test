@@ -20,12 +20,12 @@ echo $status | jq .supported | grep linux/386
 echo $status | jq .emulators | grep qemu-riscv64
 echo $status | jq .emulators | grep qemu-arm
 
-docker run --rm arm64v8/alpine uname -a
-docker run --rm arm32v7/alpine uname -a
-docker run --rm ppc64le/alpine uname -a
-docker run --rm s390x/alpine uname -a
-docker run --rm i386/alpine uname -a
-docker run --rm tonistiigi/debian:riscv uname -a
+docker run --rm --platform linux/arm64 alpine uname -a
+docker run --rm --platform linux/arm/v7 alpine uname -a
+docker run --rm --platform linux/ppc64le alpine uname -a
+docker run --rm --platform linux/s390x alpine uname -a
+docker run --rm --platform linux/386 alpine uname -a
+docker run --rm --platform linux/riscv64 alpine uname -a
 
 if [ "$(uname -m)" != "x86_64" ]; then exit 0; fi
 
@@ -41,9 +41,9 @@ echo $status | jq .emulators | grep qemu-ppc64le
 if echo $status | jq .emulators | grep aarch64; then exit 1; fi
 if echo $status | jq .emulators | grep riscv64; then exit 1; fi
 
-if docker run --rm arm64v8/alpine uname -a 2>/dev/null; then exit 1; fi
+if docker run --rm --platform linux/arm64 alpine uname -a 2>/dev/null; then exit 1; fi
 
 docker run --rm --privileged tonistiigi/binfmt:${TAG:-test} --install arm64
-docker run --rm arm64v8/alpine uname -a
+docker run --rm --platform linux/arm64 alpine uname -a
 
 docker run --rm --privileged tonistiigi/binfmt:${TAG:-test} --install riscv64
