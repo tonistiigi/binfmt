@@ -1,0 +1,76 @@
+From 4a12f3c8b2d145ccbd5a437fbdf03e84f7b43b49 Mon Sep 17 00:00:00 2001
+From: Tibor Vass <tibor@docker.com>
+Date: Tue, 2 Jun 2020 10:39:48 +0000
+Subject: [PATCH 2/7] linux-user: lookup user program in PATH
+
+Signed-off-by: Tibor Vass <tibor@docker.com>
+---
+ linux-user/main.c | 45 ++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 44 insertions(+), 1 deletion(-)
+
+diff --git a/linux-user/main.c b/linux-user/main.c
+index 149e35432e..dd70ee10f1 100644
+--- a/linux-user/main.c
++++ b/linux-user/main.c
+@@ -600,6 +600,45 @@ static void usage(int exitcode)
+     exit(exitcode);
+ }
+ 
++/*
++ * path_lookup searches for an executable filename in the directories named by the PATH environment variable.
++ * Returns a copy of filename if it is an absolute path or could not find a match.
++ * Caller is responsible to free returned string.
++ * Adapted from musl's execvp implementation.
++ */
++static char *path_lookup(char *filename) {
++    const char *p, *z, *path = getenv("PATH");
++    size_t l, k;
++    struct stat buf;
++
++    /* if PATH is not set or filename is absolute path return filename */
++    if (!path || !filename || filename[0] == '/')
++        return strndup(filename, NAME_MAX+1);
++
++    k = strnlen(filename, NAME_MAX+1);
++    if (k > NAME_MAX) {
++        errno = ENAMETOOLONG;
++        return NULL;
++    }
++    l = strnlen(path, PATH_MAX-1)+1;
++
++    for (p = path; ; p = z) {
++        char *b = calloc(l+k+1, sizeof(char));
++        z = strchrnul(p, ':');
++        if (z-p >= l) {
++            if (!*z++) break;
++            continue;
++        }
++        memcpy(b, p, z-p);
++        b[z-p] = '/';
++        memcpy(b+(z-p)+(z>p), filename, k+1);
++        if (!stat(b, &buf) && !(buf.st_mode & S_IFDIR) && (buf.st_mode & (S_IXUSR|S_IXGRP|S_IXOTH)))
++            return b;
++        if (!*z++) break;
++    }
++    return strndup(filename, NAME_MAX+1);
++}
++
+ static int parse_args(int argc, char **argv)
+ {
+     const char *r;
+@@ -665,7 +704,11 @@ static int parse_args(int argc, char **argv)
+         exit(EXIT_FAILURE);
+     }
+ 
+-    exec_path = argv[optind];
++    /* not freeing exec_path as it is needed for the lifetime of the process */
++    if (!(exec_path = path_lookup(argv[optind]))) {
++        (void) fprintf(stderr, "qemu: could not find user program %s: %s\n", exec_path, strerror(errno));
++        exit(EXIT_FAILURE);
++    }
+ 
+     return optind;
+ }
+-- 
+2.39.3 (Apple Git-146)
+
