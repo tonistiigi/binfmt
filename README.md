@@ -111,10 +111,10 @@ binfmt/9a44d27 qemu/v6.0.0 go/1.15.11
 ## Test current emulation support
 
 ```
-docker run --rm arm64v8/alpine uname -a
-docker run --rm arm32v7/alpine uname -a
-docker run --rm ppc64le/alpine uname -a
-docker run --rm s390x/alpine uname -a
+docker run --rm arm64v8/alpine:latest@sha256:ea3c5a9671f7b3f7eb47eab06f73bc6591df978b0d5955689a9e6f943aa368c0 uname -a
+docker run --rm arm32v7/alpine:latest@sha256:4fdafe217d0922f3c3e2b4f64cf043f8403a4636685cd9c51fea2cbd1f419740 uname -a
+docker run --rm ppc64le/alpine:latest@sha256:0880443bffa028dfbbc4094a32dd6b7ac25684e4c0a3d50da9e0acae355c5eaf uname -a
+docker run --rm s390x/alpine:latest@sha256:b815fadf80495594eb6296a6af0bc647ae5f193e0044e07acec7e5b378c9ce2d uname -a
 docker run --rm tonistiigi/debian:riscv uname -a
 ```
 
