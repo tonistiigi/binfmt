@@ -20,7 +20,7 @@ env:
 
 jobs:
   prepare:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -47,7 +47,7 @@ jobs:
           CACHE_TO: type=gha,scope=${{ env.CACHE_GHA_SCOPE }}-${{ matrix.target }}
 
   validate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs:
       - prepare
     strategy:
@@ -75,7 +75,7 @@ jobs:
           CACHE_FROM: type=gha,scope=${{ env.CACHE_GHA_SCOPE }}-mainline
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs:
       - prepare
     strategy:
@@ -133,7 +133,7 @@ jobs:
           docker buildx build --platform=linux/amd64,linux/arm64,linux/386,linux/arm,linux/ppc64le,linux/s390x --target=run --allow security.insecure --build-arg CONFIG_RT_GROUP_SCHED=false ./test
 
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs:
       - prepare
     strategy:
@@ -209,7 +209,7 @@ jobs:
           timeout: 120
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs:
       - validate
       - test
