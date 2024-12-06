@@ -244,8 +244,7 @@ jobs:
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
-          config: .github/buildkit.toml
-          buildkitd-flags: --allow-insecure-entitlement=security.insecure
+          buildkitd-config: .github/buildkit.toml
       -
         name: Login to DockerHub
         if: startsWith(github.ref, 'refs/heads/')
