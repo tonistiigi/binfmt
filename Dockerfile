@@ -80,6 +80,7 @@ ARG TARGETPLATFORM
 ARG QEMU_VERSION QEMU_TARGETS
 ENV AR=llvm-ar STRIP=llvm-strip
 RUN --mount=target=.,from=src,src=/src/qemu,rw --mount=target=./install-scripts,src=scripts \
+  echo ${TARGETPLATFORM} && \
   TARGETPLATFORM=${TARGETPLATFORM} configure_qemu.sh && \
   make -j "$(getconf _NPROCESSORS_ONLN)" && \
   make install && \

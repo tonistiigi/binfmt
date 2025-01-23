@@ -70,7 +70,7 @@ set -x
   --disable-debug-info \
   --disable-glusterfs \
   --cross-prefix=$(xx-info)- \
-  --host-cc=$(xx-clang --print-target-triple)-clang \
+  --host-cc=$(TARGETPLATFORM= TARGETPAIR= xx-clang --print-target-triple)-clang \
   --host=$(xx-clang --print-target-triple) \
   --build=$(TARGETPLATFORM= TARGETPAIR= xx-clang --print-target-triple) \
   --cc=$(xx-clang --print-target-triple)-clang \
