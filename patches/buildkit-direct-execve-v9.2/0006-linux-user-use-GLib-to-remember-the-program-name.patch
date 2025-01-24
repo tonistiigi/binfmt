@@ -1,0 +1,26 @@
+From 30bf474191b3f1aad6617c4527c5f936fadc87c6 Mon Sep 17 00:00:00 2001
+From: CrazyMax <crazy-max@users.noreply.github.com>
+Date: Wed, 3 May 2023 20:57:04 +0200
+Subject: [PATCH 6/7] linux-user: use GLib to remember the program name
+
+Signed-off-by: CrazyMax <crazy-max@users.noreply.github.com>
+---
+ linux-user/syscall.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/linux-user/syscall.c b/linux-user/syscall.c
+index c6de1303ae..d9067e1648 100644
+--- a/linux-user/syscall.c
++++ b/linux-user/syscall.c
+@@ -8514,7 +8514,7 @@ static int do_execv(CPUArchState *cpu_env, int dirfd,
+      * where qemu_progname is the error message prefix for qemu.
+      * Note: if pathname is relative, it will be prepended with the current working directory.
+     */
+-    argp[0] = (char*)error_get_progname();
++    argp[0] = (char*)g_get_prgname();
+     argp[1] = (char*)"-0";
+     argp[2] = (char*)lock_user_string(addr);
+     argp[3] = (char*)prepend_workdir_if_relative(p);
+-- 
+2.39.3 (Apple Git-146)
+

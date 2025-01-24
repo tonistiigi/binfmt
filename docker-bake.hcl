@@ -5,7 +5,7 @@ variable "QEMU_REPO" {
   default = "https://github.com/qemu/qemu"
 }
 variable "QEMU_VERSION" {
-  default = "v8.1.5"
+  default = "v9.2.0"
 }
 variable "QEMU_PATCHES" {
   default = "cpu-max-arm"
@@ -59,7 +59,7 @@ target "buildkit" {
   inherits = ["mainline"]
   args = {
     BINARY_PREFIX = "buildkit-"
-    QEMU_PATCHES = "${QEMU_PATCHES},buildkit-direct-execve-v8.1"
+    QEMU_PATCHES = "${QEMU_PATCHES},buildkit-direct-execve-v9.2"
     QEMU_PRESERVE_ARGV0 = ""
   }
   cache-from = ["${REPO}:buildkit-master"]
@@ -80,7 +80,7 @@ target "buildkit-test" {
 target "desktop" {
   inherits = ["mainline"]
   args = {
-    QEMU_PATCHES = "${QEMU_PATCHES},subreaper-prctl,pretcode"
+    QEMU_PATCHES = "${QEMU_PATCHES},pretcode"
   }
   cache-from = ["${REPO}:desktop-master"]
 }
