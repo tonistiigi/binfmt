@@ -62,7 +62,6 @@ set -x
   --disable-mpath \
   --disable-nettle \
   --disable-opengl \
-  --disable-pie \
   --disable-sdl \
   --disable-spice \
   --disable-tools \
