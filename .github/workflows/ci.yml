@@ -149,7 +149,7 @@ jobs:
           - linux/arm/v7
         include:
           - target: mainline
-            dockerfile: ejabberd
+            dockerfile: npm-version
             platform: linux/arm64
           - target: desktop
             dockerfile: tini
