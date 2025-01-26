@@ -153,6 +153,9 @@ jobs:
           - target: mainline
             dockerfile: libc-bin
             platform: linux/arm64
+          - target: mainline
+            dockerfile: npm-version
+            platform: linux/arm64
           - target: desktop
             dockerfile: tini
             platform: linux/arm64
