@@ -37,6 +37,9 @@ func uninstall(arch string) error {
 		return err
 	}
 	for _, fi := range fis {
+		if fi.Name() == "register" || fi.Name() == "status" || fi.Name() == "WSLInterop" {
+			continue
+		}
 		if fi.Name() == arch || strings.HasSuffix(fi.Name(), "-"+arch) {
 			return os.WriteFile(filepath.Join(mount, fi.Name()), []byte("-1"), 0600)
 		}
