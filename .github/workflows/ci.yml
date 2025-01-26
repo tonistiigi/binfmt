@@ -18,7 +18,7 @@ env:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -42,7 +42,7 @@ jobs:
           ${{ matrix.script }}
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -60,13 +60,13 @@ jobs:
       -
         name: Test buildkit
         if: matrix.target == 'buildkit'
-        uses: docker/bake-action@v4
+        uses: docker/bake-action@v5
         with:
           targets: buildkit-test
       -
         name: Load mainline for testing
         if: matrix.target == 'mainline'
-        uses: docker/bake-action@v4
+        uses: docker/bake-action@v5
         with:
           targets: mainline
           load: true
@@ -78,15 +78,15 @@ jobs:
         run: |
           docker run --rm --privileged ${{ env.REPO_SLUG }}:test --uninstall qemu-*
           docker run --rm --privileged ${{ env.REPO_SLUG }}:test --install all
-          docker run --rm arm64v8/alpine uname -a
-          docker run --rm arm32v7/alpine uname -a
-          docker run --rm ppc64le/alpine uname -a
-          docker run --rm s390x/alpine uname -a
-          docker run --rm tonistiigi/debian:riscv uname -a
-          docker run --rm yangzewei2023/debian:loongarch64 uname -a
-          docker run --rm --platform=linux/s390x s390x/ubuntu apt update
-          docker run --rm --platform=linux/ppc64le ppc64le/ubuntu apt update
-          docker run --rm --platform=linux/arm64 arm64v8/ubuntu apt update
+          docker run --rm --platform linux/arm64 alpine uname -a
+          docker run --rm --platform linux/arm/v7 alpine uname -a
+          docker run --rm --platform linux/ppc64le alpine uname -a
+          docker run --rm --platform linux/s390x alpine uname -a
+          docker run --rm --platform linux/riscv64 alpine uname -a
+          docker run --rm --platform linux/loong64 yangzewei2023/debian:loongarch64 uname -a
+          docker run --rm --platform linux/s390x ubuntu apt update
+          docker run --rm --platform linux/ppc64le ubuntu apt update
+          docker run --rm --platform linux/arm64 ubuntu apt update
       -
         name: Test Syscalls
         if: matrix.target == 'mainline'
@@ -95,7 +95,7 @@ jobs:
           docker buildx build --platform=linux/amd64,linux/arm64,linux/386,linux/arm,linux/ppc64le,linux/s390x --target=run --allow security.insecure --build-arg CONFIG_RT_GROUP_SCHED=false ./test
 
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -130,7 +130,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
       -
         name: Load for testing
-        uses: docker/bake-action@v4
+        uses: docker/bake-action@v5
         with:
           targets: ${{ matrix.target }}
           load: true
@@ -168,7 +168,7 @@ jobs:
           timeout: 120
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs:
       - validate
       - test
@@ -203,8 +203,7 @@ jobs:
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
-          config: .github/buildkit.toml
-          buildkitd-flags: --allow-insecure-entitlement=security.insecure
+          buildkitd-config: .github/buildkit.toml
       -
         name: Login to DockerHub
         if: startsWith(github.ref, 'refs/heads/')
@@ -217,7 +216,7 @@ jobs:
         uses: docker/setup-qemu-action@v3
       -
         name: Build ${{ matrix.target }}
-        uses: docker/bake-action@v4
+        uses: docker/bake-action@v5
         with:
           files: |
             ./docker-bake.hcl

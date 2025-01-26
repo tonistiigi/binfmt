@@ -31,7 +31,7 @@ env:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       -
         name: Checkout
@@ -93,7 +93,7 @@ jobs:
           password: ${{ secrets.DOCKERIO_PASSWORD }}
       -
         name: Build image
-        uses: docker/bake-action@v4
+        uses: docker/bake-action@v5
         with:
           files: |
             ./docker-bake.hcl
@@ -109,7 +109,7 @@ jobs:
           QEMU_VERSION: ${{ steps.prep.outputs.ref }}
       -
         name: Build artifacts
-        uses: docker/bake-action@v4
+        uses: docker/bake-action@v5
         if: github.event.inputs.target == 'mainline'
         with:
           files: |
@@ -131,7 +131,7 @@ jobs:
           tree -nh ./bin
       -
         name: Create Release
-        uses: softprops/action-gh-release@69320dbe05506a9a39fc8ae11030b214ec2d1f87  # v2.0.5
+        uses: softprops/action-gh-release@01570a1f39cb168c169c802c3bceb9e93fb10974  # v2.1.0
         if: github.event.inputs.dry-run != 'true'
         with:
           name: ${{ steps.prep.outputs.git_tag }}
