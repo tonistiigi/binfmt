@@ -11,7 +11,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/containerd/containerd/platforms"
+	"github.com/containerd/platforms"
 	"github.com/moby/buildkit/util/archutil"
 	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
@@ -29,6 +29,9 @@ func init() {
 	flag.StringVar(&toInstall, "install", "", "architectures to install")
 	flag.StringVar(&toUninstall, "uninstall", "", "architectures to uninstall")
 	flag.BoolVar(&flVersion, "version", false, "display version")
+
+	// completely discard cache for archutil.SupportedPlatforms
+	archutil.CacheMaxAge = 0
 }
 
 func uninstall(arch string) error {
@@ -141,7 +144,7 @@ func printStatus() error {
 func formatPlatforms(p []ocispecs.Platform) []string {
 	str := make([]string, 0, len(p))
 	for _, pp := range p {
-		str = append(str, platforms.Format(platforms.Normalize(pp)))
+		str = append(str, platforms.FormatAll(platforms.Normalize(pp)))
 	}
 	return str
 }

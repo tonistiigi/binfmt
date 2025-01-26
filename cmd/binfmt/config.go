@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/containerd/containerd/platforms"
+	"github.com/containerd/platforms"
 	"github.com/moby/buildkit/util/archutil"
 )
 
