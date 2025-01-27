@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 ARG GO_VERSION=1.21
-ARG ALPINE_VERSION=3.20
+ARG ALPINE_VERSION=3.21
 ARG XX_VERSION=1.5.0
 
 ARG QEMU_VERSION=HEAD
@@ -21,7 +21,7 @@ COPY patches patches
 # QEMU_PATCHES defines additional patches to apply before compilation
 ARG QEMU_PATCHES=cpu-max-arm
 # QEMU_PATCHES_ALL defines all patches to apply before compilation
-ARG QEMU_PATCHES_ALL=${QEMU_PATCHES},alpine-patches
+ARG QEMU_PATCHES_ALL=${QEMU_PATCHES},alpine-patches,meson
 ARG QEMU_PRESERVE_ARGV0
 RUN <<eof
   set -ex
@@ -62,7 +62,7 @@ ENV PATH=/qemu/install-scripts:$PATH
 WORKDIR /qemu
 
 ARG TARGETPLATFORM
-RUN xx-apk add --no-cache musl-dev gcc glib-dev glib-static linux-headers zlib-static
+RUN xx-apk -v add --no-cache musl-dev gcc glib-dev glib-static linux-headers zlib-static
 RUN set -e; \
   [ "$(xx-info arch)" = "ppc64le" ] && XX_CC_PREFER_LINKER=ld xx-clang --setup-target-triple; \
   [ "$(xx-info arch)" = "386" ] && XX_CC_PREFER_LINKER=ld xx-clang --setup-target-triple; \
@@ -74,6 +74,7 @@ ARG TARGETPLATFORM
 ARG QEMU_VERSION QEMU_TARGETS
 ENV AR=llvm-ar STRIP=llvm-strip
 RUN --mount=target=.,from=src,src=/src/qemu,rw --mount=target=./install-scripts,src=scripts \
+  echo ${TARGETPLATFORM} && \
   TARGETPLATFORM=${TARGETPLATFORM} configure_qemu.sh && \
   make -j "$(getconf _NPROCESSORS_ONLN)" && \
   make install && \
