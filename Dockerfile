@@ -11,7 +11,7 @@ ARG QEMU_REPO=https://github.com/qemu/qemu
 FROM --platform=$BUILDPLATFORM tonistiigi/xx:${XX_VERSION} AS xx
 
 FROM --platform=$BUILDPLATFORM alpine:${ALPINE_VERSION} AS src
-RUN apk add --no-cache git patch
+RUN apk add --no-cache git patch meson
 
 WORKDIR /src
 ARG QEMU_VERSION
@@ -52,7 +52,13 @@ RUN <<eof
   for p in $(echo $QEMU_PATCHES_ALL | tr ',' '\n'); do
     for f in  ../patches/$p/*.patch; do echo "apply $f"; patch -p1 < $f; done
   done
-  scripts/git-submodule.sh update ui/keycodemapdb tests/fp/berkeley-testfloat-3 tests/fp/berkeley-softfloat-3 dtc slirp
+eof
+RUN <<eof
+  set -ex
+  cd qemu
+  # https://github.com/qemu/qemu/blob/ed734377ab3f3f3cc15d7aa301a87ab6370f2eed/scripts/make-release#L56-L57
+  git submodule update --init --single-branch
+  meson subprojects download keycodemapdb berkeley-testfloat-3 berkeley-softfloat-3 dtc slirp
 eof
 
 FROM --platform=$BUILDPLATFORM alpine:${ALPINE_VERSION} AS base
