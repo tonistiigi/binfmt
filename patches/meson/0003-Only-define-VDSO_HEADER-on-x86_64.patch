@@ -1,0 +1,38 @@
+From 304b3fc0f20f0dd88557b324f61bb99760750a68 Mon Sep 17 00:00:00 2001
+From: Piotr Stankiewicz <piotr.stankiewicz@docker.com>
+Date: Fri, 24 Jan 2025 13:08:53 +0100
+Subject: [PATCH 3/3] Only define VDSO_HEADER on x86_64
+
+Signed-off-by: Piotr Stankiewicz <piotr.stankiewicz@docker.com>
+---
+ linux-user/elfload.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/linux-user/elfload.c b/linux-user/elfload.c
+index 471a384b22..9b55c9f8fd 100644
+--- a/linux-user/elfload.c
++++ b/linux-user/elfload.c
+@@ -326,9 +326,9 @@ static void elf_core_copy_regs(target_elf_gregset_t *regs, const CPUX86State *en
+         }                                               \
+     } while (0)
+ 
+-#endif /* TARGET_X86_64 */
++//#define VDSO_HEADER "vdso.c.inc"
+ 
+-#define VDSO_HEADER "vdso.c.inc"
++#endif /* TARGET_X86_64 */
+ 
+ #define USE_ELF_CORE_DUMP
+ #define ELF_EXEC_PAGESIZE       4096
+@@ -1259,7 +1259,7 @@ static void elf_core_copy_regs(target_elf_gregset_t *regs, const CPUPPCState *en
+ 
+ #define elf_check_arch(x) ((x) == EM_LOONGARCH)
+ 
+-#define VDSO_HEADER "vdso.c.inc"
++//#define VDSO_HEADER "vdso.c.inc"
+ 
+ static inline void init_thread(struct target_pt_regs *regs,
+                                struct image_info *infop)
+-- 
+2.43.0
+

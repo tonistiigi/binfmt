@@ -1,0 +1,26 @@
+From 39f0697cb9d13d8630543209e5bf22148b32b7cb Mon Sep 17 00:00:00 2001
+From: Tonis Tiigi <tonistiigi@gmail.com>
+Date: Thu, 26 Aug 2021 01:18:32 +0200
+Subject: [PATCH 5/7] set script path as argv0 in shebang handler
+
+Signed-off-by: Tonis Tiigi <tonistiigi@gmail.com>
+---
+ linux-user/linuxload.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/linux-user/linuxload.c b/linux-user/linuxload.c
+index 7e66ef0ab9..71f9f46aea 100644
+--- a/linux-user/linuxload.c
++++ b/linux-user/linuxload.c
+@@ -259,6 +259,8 @@ int load_script(struct linux_binprm *bprm)
+      *           (4) user arguments (argv[1:])
+      */
+ 
++    bprm->argv[0] = bprm->filename;
++
+     execfd = open(i_name, O_RDONLY);
+     if (execfd < 0) {
+         perror("script_prepare_binprm: could not open script");
+-- 
+2.39.3 (Apple Git-146)
+

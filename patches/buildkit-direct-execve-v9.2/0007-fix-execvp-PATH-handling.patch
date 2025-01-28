@@ -1,0 +1,59 @@
+From 799398afc09f55c23877ee79e4ce9f41823e9faf Mon Sep 17 00:00:00 2001
+From: CrazyMax <crazy-max@users.noreply.github.com>
+Date: Wed, 3 May 2023 21:04:19 +0200
+Subject: [PATCH 7/7] fix execvp PATH handling
+
+When the execvp syscall is invoked, the system PATH should be searched
+for the executable to invoke, with the first match in the PATH being
+invoked. However, the call being modified to inject qemu breaks this
+behaviour, as it's not till _after_ qemu is invoked that the presence or
+executability is checked, which is too late. ENOENT and EACCESS aren't
+returned from the execve call, which stops execvp looping over the PATH
+and aborts the entire process.
+
+This is resolved by testing the target command prior to executing it via
+qemu, returning the appropriate error codes.
+
+Signed-off-by: David Ackroyd <dackroyd@nine.com.au>
+Signed-off-by: CrazyMax <crazy-max@users.noreply.github.com>
+---
+ linux-user/syscall.c | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/linux-user/syscall.c b/linux-user/syscall.c
+index d9067e1648..1bfe4b2f0d 100644
+--- a/linux-user/syscall.c
++++ b/linux-user/syscall.c
+@@ -8466,6 +8466,7 @@ static int do_execv(CPUArchState *cpu_env, int dirfd,
+     abi_ulong addr;
+     char **q;
+     void *p;
++    struct stat st;
+ 
+     argc = 0;
+ 
+@@ -8523,6 +8524,21 @@ static int do_execv(CPUArchState *cpu_env, int dirfd,
+         goto execve_end;
+     }
+ 
++    /*
++     * Check whether executable up front, as running once the qemu process is started these failures
++     * will happen internally there, and only exposed as a non-zero exit code for qemu.
++     */
++    ret = get_errno(stat(argp[3], &st));
++    if (is_error(ret)) {
++        ret = -host_to_target_errno(errno);
++        goto execve_end;
++    }
++
++    if ((st.st_mode & S_IFDIR) || !(st.st_mode & (S_IXUSR|S_IXGRP|S_IXOTH))) {
++        ret = TARGET_EACCES;
++        goto execve_end;
++    }
++
+     /* copy guest argv1 onwards to host argv4 onwards */
+     for (gp = guest_argp + 1*sizeof(abi_ulong), q = argp + 4; gp; gp += sizeof(abi_ulong), q++) {
+         if (get_user_ual(addr, gp)) {
+-- 
+2.39.3 (Apple Git-146)
+

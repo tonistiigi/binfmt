@@ -1,0 +1,26 @@
+From 0259c31c4edba0a2089f6b578302d38a8295fdec Mon Sep 17 00:00:00 2001
+From: Piotr Stankiewicz <piotr.stankiewicz@docker.com>
+Date: Fri, 24 Jan 2025 11:40:20 +0100
+Subject: [PATCH 2/3] Require native c compiler
+
+Signed-off-by: Piotr Stankiewicz <piotr.stankiewicz@docker.com>
+---
+ meson.build | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/meson.build b/meson.build
+index 147097c652..1cb32c6e23 100644
+--- a/meson.build
++++ b/meson.build
+@@ -83,6 +83,8 @@ if host_os == 'darwin' and \
+   objc = meson.get_compiler('objc')
+ endif
+ 
++add_languages('c', native: true)
++
+ have_rust = add_languages('rust', native: false,
+     required: get_option('rust').disable_auto_if(not have_system))
+ have_rust = have_rust and add_languages('rust', native: true,
+-- 
+2.43.0
+
