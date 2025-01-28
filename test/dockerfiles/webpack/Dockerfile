@@ -11,6 +11,7 @@ RUN npm install .
 
 COPY . /js
 
+ARG QEMU_STRACE
 RUN webpack\
     --verbose\
     --display=verbose\

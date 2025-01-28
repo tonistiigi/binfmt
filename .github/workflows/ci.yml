@@ -162,6 +162,11 @@ jobs:
             logs_ctn_name: postgis
             logs_check: "UTC [1] LOG:  database system is ready to accept connections"
     steps:
+      - name: Prepare
+        run: |
+          if [ "$RUNNER_DEBUG" = "1" ]; then
+            echo "QEMU_STRACE=1" >> $GITHUB_ENV
+          fi
       -
         name: Checkout
         uses: actions/checkout@v4
@@ -186,19 +191,19 @@ jobs:
         name: Test
         working-directory: test/dockerfiles/${{ matrix.dockerfile }}
         run: |
-          docker buildx build --platform ${{ matrix.platform }} --output type=cacheonly .
+          docker buildx build --build-arg QEMU_STRACE --platform ${{ matrix.platform }} --output type=cacheonly .
       -
         name: Load image
         if: ${{ matrix.run_args != '' }}
         working-directory: test/dockerfiles/${{ matrix.dockerfile }}
         run: |
-          docker buildx build --platform ${{ matrix.platform }} -t ${{ matrix.dockerfile }}:local --load .
+          docker buildx build --build-arg QEMU_STRACE --platform ${{ matrix.platform }} -t ${{ matrix.dockerfile }}:local --load .
       -
         name: Run
         if: ${{ matrix.run_args != '' }}
         working-directory: test/dockerfiles/${{ matrix.dockerfile }}
         run: |
-          docker run ${{ matrix.run_args }} --platform ${{ matrix.platform }} ${{ matrix.dockerfile }}:local
+          docker run ${{ matrix.run_args }} --env QEMU_STRACE --platform ${{ matrix.platform }} ${{ matrix.dockerfile }}:local
       -
         name: Check container logs
         if: ${{ matrix.logs_ctn_name != '' && matrix.logs_check != '' }}

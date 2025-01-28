@@ -27,6 +27,8 @@ RUN apk upgrade --update musl \
     yaml-dev \
     zlib-dev
 
+ARG QEMU_STRACE
+
 RUN mix local.hex --force \
     && mix local.rebar --force
 
