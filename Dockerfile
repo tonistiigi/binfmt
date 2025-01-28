@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 
-ARG GO_VERSION=1.21
-ARG ALPINE_VERSION=3.20
-ARG XX_VERSION=1.5.0
+ARG GO_VERSION=1.23
+ARG ALPINE_VERSION=3.21
+ARG XX_VERSION=1.6.1
 
 ARG QEMU_VERSION=HEAD
 ARG QEMU_REPO=https://github.com/qemu/qemu
@@ -11,7 +11,7 @@ ARG QEMU_REPO=https://github.com/qemu/qemu
 FROM --platform=$BUILDPLATFORM tonistiigi/xx:${XX_VERSION} AS xx
 
 FROM --platform=$BUILDPLATFORM alpine:${ALPINE_VERSION} AS src
-RUN apk add --no-cache git patch
+RUN apk add --no-cache git patch meson
 
 WORKDIR /src
 ARG QEMU_VERSION
@@ -52,7 +52,13 @@ RUN <<eof
   for p in $(echo $QEMU_PATCHES_ALL | tr ',' '\n'); do
     for f in  ../patches/$p/*.patch; do echo "apply $f"; patch -p1 < $f; done
   done
-  scripts/git-submodule.sh update ui/keycodemapdb tests/fp/berkeley-testfloat-3 tests/fp/berkeley-softfloat-3 dtc slirp
+eof
+RUN <<eof
+  set -ex
+  cd qemu
+  # https://github.com/qemu/qemu/blob/ed734377ab3f3f3cc15d7aa301a87ab6370f2eed/scripts/make-release#L56-L57
+  git submodule update --init --single-branch
+  meson subprojects download keycodemapdb berkeley-testfloat-3 berkeley-softfloat-3 dtc slirp
 eof
 
 FROM --platform=$BUILDPLATFORM alpine:${ALPINE_VERSION} AS base
@@ -82,7 +88,7 @@ RUN --mount=target=.,from=src,src=/src/qemu,rw --mount=target=./install-scripts,
 ARG BINARY_PREFIX
 RUN cd /usr/bin; [ -z "$BINARY_PREFIX" ] || for f in $(ls qemu-*); do ln -s $f $BINARY_PREFIX$f; done
 
-FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS binfmt
+FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine${ALPINE_VERSION} AS binfmt
 COPY --from=xx / /
 ENV CGO_ENABLED=0
 ARG TARGETPLATFORM
@@ -146,7 +152,7 @@ RUN <<eof
 eof
 
 # buildkit-test runs test suite for buildkit embedded QEMU
-FROM golang:${GO_VERSION}-alpine AS buildkit-test
+FROM golang:${GO_VERSION}-alpine${ALPINE_VERSION} AS buildkit-test
 RUN apk add --no-cache bash bats
 WORKDIR /work
 COPY --from=assert . .

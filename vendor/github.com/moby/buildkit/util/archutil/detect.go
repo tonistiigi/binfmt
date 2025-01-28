@@ -4,21 +4,28 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
-	"github.com/containerd/containerd/platforms"
+	"github.com/containerd/platforms"
 	"github.com/moby/buildkit/util/bklog"
 	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-var mu sync.Mutex
-var arr []ocispecs.Platform
+var CacheMaxAge = 20 * time.Second
+
+var (
+	mu          sync.Mutex
+	arr         []ocispecs.Platform
+	lastRefresh time.Time
+)
 
 func SupportedPlatforms(noCache bool) []ocispecs.Platform {
 	mu.Lock()
 	defer mu.Unlock()
-	if !noCache && arr != nil {
+	if arr != nil && (!noCache || CacheMaxAge < 0 || time.Since(lastRefresh) < CacheMaxAge) {
 		return arr
 	}
+	defer func() { lastRefresh = time.Now() }()
 	def := nativePlatform()
 	arr = append([]ocispecs.Platform{}, def)
 
@@ -75,6 +82,11 @@ func SupportedPlatforms(noCache bool) []ocispecs.Platform {
 	}
 	if p := "mips64"; def.Architecture != p {
 		if _, err := mips64Supported(); err == nil {
+			arr = append(arr, linux(p))
+		}
+	}
+	if p := "loong64"; def.Architecture != p {
+		if _, err := loong64Supported(); err == nil {
 			arr = append(arr, linux(p))
 		}
 	}
@@ -141,6 +153,11 @@ func WarnIfUnsupported(pfs []ocispecs.Platform) {
 			}
 			if p.Architecture == "mips64" {
 				if _, err := mips64Supported(); err != nil {
+					printPlatformWarning(p, err)
+				}
+			}
+			if p.Architecture == "loong64" {
+				if _, err := loong64Supported(); err != nil {
 					printPlatformWarning(p, err)
 				}
 			}
