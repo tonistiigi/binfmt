@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 
-ARG GO_VERSION=1.21
-ARG ALPINE_VERSION=3.20
-ARG XX_VERSION=1.5.0
+ARG GO_VERSION=1.23
+ARG ALPINE_VERSION=3.21
+ARG XX_VERSION=1.6.1
 
 ARG QEMU_VERSION=HEAD
 ARG QEMU_REPO=https://github.com/qemu/qemu
@@ -82,7 +82,7 @@ RUN --mount=target=.,from=src,src=/src/qemu,rw --mount=target=./install-scripts,
 ARG BINARY_PREFIX
 RUN cd /usr/bin; [ -z "$BINARY_PREFIX" ] || for f in $(ls qemu-*); do ln -s $f $BINARY_PREFIX$f; done
 
-FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS binfmt
+FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine${ALPINE_VERSION} AS binfmt
 COPY --from=xx / /
 ENV CGO_ENABLED=0
 ARG TARGETPLATFORM
@@ -146,7 +146,7 @@ RUN <<eof
 eof
 
 # buildkit-test runs test suite for buildkit embedded QEMU
-FROM golang:${GO_VERSION}-alpine AS buildkit-test
+FROM golang:${GO_VERSION}-alpine${ALPINE_VERSION} AS buildkit-test
 RUN apk add --no-cache bash bats
 WORKDIR /work
 COPY --from=assert . .

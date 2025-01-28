@@ -68,11 +68,12 @@ func install(arch string) error {
 	register := filepath.Join(mount, "register")
 	file, err := os.OpenFile(register, os.O_WRONLY, 0)
 	if err != nil {
-		e, ok := err.(*os.PathError)
-		if ok && e.Err == syscall.ENOENT {
+		var pathErr *os.PathError
+		ok := errors.As(err, &pathErr)
+		if ok && errors.Is(pathErr.Err, syscall.ENOENT) {
 			return errors.Errorf("ENOENT opening %s is it mounted?", register)
 		}
-		if ok && e.Err == syscall.EPERM {
+		if ok && errors.Is(pathErr.Err, syscall.EPERM) {
 			return errors.Errorf("EPERM opening %s check permissions?", register)
 		}
 		return errors.Errorf("Cannot open %s: %s", register, err)
@@ -93,8 +94,8 @@ func install(arch string) error {
 	// short writes should not occur on sysfs, cannot usefully recover
 	_, err = file.Write([]byte(line))
 	if err != nil {
-		e, ok := err.(*os.PathError)
-		if ok && e.Err == syscall.EEXIST {
+		var pathErr *os.PathError
+		if errors.As(err, &pathErr) && errors.Is(pathErr.Err, syscall.EEXIST) {
 			return errors.Errorf("%s already registered", binaryBasename)
 		}
 		return errors.Errorf("cannot register %q to %s: %s", binaryFullpath, register, err)
