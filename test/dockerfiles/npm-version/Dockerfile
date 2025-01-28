@@ -1,5 +1,6 @@
 # https://github.com/tonistiigi/binfmt/issues/215#issuecomment-2613934823
 FROM node:22-bullseye
+ENV QEMU_STRACE=1
 RUN <<EOT
   set +ex
   timeout 10m sh -c 'while test $? -eq 0; do npm --version; done'
