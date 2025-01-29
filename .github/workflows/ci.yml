@@ -121,7 +121,7 @@ jobs:
           docker run --rm --platform linux/ppc64le alpine uname -a
           docker run --rm --platform linux/s390x alpine uname -a
           docker run --rm --platform linux/riscv64 alpine uname -a
-          docker run --rm --platform linux/loong64 yangzewei2023/debian:loongarch64 uname -a
+          docker run --rm --platform linux/loong64 registry.alpinelinux.org/img/alpine uname -a
           docker run --rm --platform linux/s390x ubuntu apt update
           docker run --rm --platform linux/ppc64le ubuntu apt update
           docker run --rm --platform linux/arm64 ubuntu apt update
