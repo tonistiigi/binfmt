@@ -1,8 +1,9 @@
 run:
   timeout: 10m
-  skip-files:
-    - ".*\\.pb\\.go$"
   modules-download-mode: vendor
+  # default uses Go version from the go.mod file, fallback on the env var
+  # `GOVERSION`, fallback on 1.17: https://golangci-lint.run/usage/configuration/#run-configuration
+  go: "1.23"
 
 linters:
   enable:
@@ -50,6 +51,6 @@ issues:
         - revive
       text: "if-return"
 
-# show all
-max-issues-per-linter: 0
-max-same-issues: 0
+  # show all
+  max-issues-per-linter: 0
+  max-same-issues: 0

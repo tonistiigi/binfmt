@@ -11,7 +11,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/containerd/containerd/platforms"
+	"github.com/containerd/platforms"
 	"github.com/moby/buildkit/util/archutil"
 	ocispecs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
@@ -29,6 +29,9 @@ func init() {
 	flag.StringVar(&toInstall, "install", "", "architectures to install")
 	flag.StringVar(&toUninstall, "uninstall", "", "architectures to uninstall")
 	flag.BoolVar(&flVersion, "version", false, "display version")
+
+	// completely discard cache for archutil.SupportedPlatforms
+	archutil.CacheMaxAge = 0
 }
 
 func uninstall(arch string) error {
@@ -68,11 +71,12 @@ func install(arch string) error {
 	register := filepath.Join(mount, "register")
 	file, err := os.OpenFile(register, os.O_WRONLY, 0)
 	if err != nil {
-		e, ok := err.(*os.PathError)
-		if ok && e.Err == syscall.ENOENT {
+		var pathErr *os.PathError
+		ok := errors.As(err, &pathErr)
+		if ok && errors.Is(pathErr.Err, syscall.ENOENT) {
 			return errors.Errorf("ENOENT opening %s is it mounted?", register)
 		}
-		if ok && e.Err == syscall.EPERM {
+		if ok && errors.Is(pathErr.Err, syscall.EPERM) {
 			return errors.Errorf("EPERM opening %s check permissions?", register)
 		}
 		return errors.Errorf("Cannot open %s: %s", register, err)
@@ -93,8 +97,8 @@ func install(arch string) error {
 	// short writes should not occur on sysfs, cannot usefully recover
 	_, err = file.Write([]byte(line))
 	if err != nil {
-		e, ok := err.(*os.PathError)
-		if ok && e.Err == syscall.EEXIST {
+		var pathErr *os.PathError
+		if errors.As(err, &pathErr) && errors.Is(pathErr.Err, syscall.EEXIST) {
 			return errors.Errorf("%s already registered", binaryBasename)
 		}
 		return errors.Errorf("cannot register %q to %s: %s", binaryFullpath, register, err)
@@ -140,7 +144,7 @@ func printStatus() error {
 func formatPlatforms(p []ocispecs.Platform) []string {
 	str := make([]string, 0, len(p))
 	for _, pp := range p {
-		str = append(str, platforms.Format(platforms.Normalize(pp)))
+		str = append(str, platforms.FormatAll(platforms.Normalize(pp)))
 	}
 	return str
 }
