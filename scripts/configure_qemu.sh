@@ -71,8 +71,6 @@ set -x
   --disable-glusterfs \
   --cross-prefix=$(xx-info)- \
   --host-cc=$(TARGETPLATFORM= TARGETPAIR= xx-clang --print-target-triple)-clang \
-  --host=$(xx-clang --print-target-triple) \
-  --build=$(TARGETPLATFORM= TARGETPAIR= xx-clang --print-target-triple) \
   --cc=$(xx-clang --print-target-triple)-clang \
   --extra-ldflags=-latomic \
   --target-list="$QEMU_TARGETS"
