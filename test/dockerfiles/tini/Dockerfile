@@ -19,4 +19,6 @@ RUN <<EOT
   chmod +x /tini
   file /tini
 EOT
+
+ENV QEMU_STRACE=""
 CMD [ "/tini", "-s", "--", "uname", "-a" ]
