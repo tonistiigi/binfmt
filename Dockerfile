@@ -21,7 +21,7 @@ COPY patches patches
 # QEMU_PATCHES defines additional patches to apply before compilation
 ARG QEMU_PATCHES=cpu-max-arm
 # QEMU_PATCHES_ALL defines all patches to apply before compilation
-ARG QEMU_PATCHES_ALL=${QEMU_PATCHES},alpine-patches
+ARG QEMU_PATCHES_ALL=${QEMU_PATCHES},alpine-patches,meson
 ARG QEMU_PRESERVE_ARGV0
 RUN <<eof
   set -ex
@@ -80,6 +80,7 @@ ARG TARGETPLATFORM
 ARG QEMU_VERSION QEMU_TARGETS
 ENV AR=llvm-ar STRIP=llvm-strip
 RUN --mount=target=.,from=src,src=/src/qemu,rw --mount=target=./install-scripts,src=scripts \
+  echo ${TARGETPLATFORM} && \
   TARGETPLATFORM=${TARGETPLATFORM} configure_qemu.sh && \
   make -j "$(getconf _NPROCESSORS_ONLN)" && \
   make install && \
