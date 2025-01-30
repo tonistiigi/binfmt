@@ -2,7 +2,7 @@
 
 set -e
 
-: "${QEMU_TARGETS_EXCLUDE=sparc32plus-linux-user sh4be-linux-user xtensa-linux-user xtensaeb-linux-user microblaze-linux-user microblazeel-linux-user or1k-linux-user hexagon-linux-user cris-linux-user nios2-linux-user}"
+: "${QEMU_TARGETS_EXCLUDE=}"
 
 arch="$(xx-info arch)"
 
