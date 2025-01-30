@@ -83,7 +83,7 @@ jobs:
           docker run --rm --platform linux/ppc64le alpine uname -a
           docker run --rm --platform linux/s390x alpine uname -a
           docker run --rm --platform linux/riscv64 alpine uname -a
-          docker run --rm --platform linux/loong64 yangzewei2023/debian:loongarch64 uname -a
+          docker run --rm --platform linux/loong64 registry.alpinelinux.org/img/alpine uname -a
           docker run --rm --platform linux/s390x ubuntu apt update
           docker run --rm --platform linux/ppc64le ubuntu apt update
           docker run --rm --platform linux/arm64 ubuntu apt update
@@ -122,6 +122,11 @@ jobs:
             logs_ctn_name: postgis
             logs_check: "UTC [1] LOG:  database system is ready to accept connections"
     steps:
+      - name: Prepare
+        run: |
+          if [ "$RUNNER_DEBUG" = "1" ]; then
+            echo "QEMU_STRACE=1" >> $GITHUB_ENV
+          fi
       -
         name: Checkout
         uses: actions/checkout@v4
@@ -145,19 +150,19 @@ jobs:
         name: Test
         working-directory: test/dockerfiles/${{ matrix.dockerfile }}
         run: |
-          docker buildx build --platform ${{ matrix.platform }} --output type=cacheonly .
+          docker buildx build --build-arg QEMU_STRACE --platform ${{ matrix.platform }} --output type=cacheonly .
       -
         name: Load image
         if: ${{ matrix.run_args != '' }}
         working-directory: test/dockerfiles/${{ matrix.dockerfile }}
         run: |
-          docker buildx build --platform ${{ matrix.platform }} -t ${{ matrix.dockerfile }}:local --load .
+          docker buildx build --build-arg QEMU_STRACE --platform ${{ matrix.platform }} -t ${{ matrix.dockerfile }}:local --load .
       -
         name: Run
         if: ${{ matrix.run_args != '' }}
         working-directory: test/dockerfiles/${{ matrix.dockerfile }}
         run: |
-          docker run ${{ matrix.run_args }} --platform ${{ matrix.platform }} ${{ matrix.dockerfile }}:local
+          docker run ${{ matrix.run_args }} --env QEMU_STRACE --platform ${{ matrix.platform }} ${{ matrix.dockerfile }}:local
       -
         name: Check container logs
         if: ${{ matrix.logs_ctn_name != '' && matrix.logs_check != '' }}
@@ -167,12 +172,10 @@ jobs:
           log_check: ${{ matrix.logs_check }}
           timeout: 120
 
-  build:
+  prepare-build:
     runs-on: ubuntu-24.04
-    needs:
-      - validate
-      - test
-      - e2e
+    outputs:
+      matrix: ${{ steps.platforms.outputs.matrix }}
     strategy:
       fail-fast: false
       matrix:
@@ -184,6 +187,15 @@ jobs:
       -
         name: Checkout
         uses: actions/checkout@v4
+      -
+        name: Create matrix
+        id: platforms
+        run: |
+          echo "matrix=$(docker buildx bake ${{ matrix.target }}-all --print | jq -cr '.target."${{ matrix.target }}-all".platforms')" >>${GITHUB_OUTPUT}
+      -
+        name: Show matrix
+        run: |
+          echo ${{ steps.platforms.outputs.matrix }}
       -
         name: Docker meta
         id: meta
@@ -200,10 +212,48 @@ jobs:
             org.opencontainers.image.description=Cross-platform emulator collection distributed with Docker images
           bake-target: meta-helper
       -
-        name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        name: Rename meta bake definition file
+        run: |
+          mv "${{ steps.meta.outputs.bake-file }}" "${{ runner.temp }}/bake-meta.json"
+      -
+        name: Upload meta bake definition
+        uses: actions/upload-artifact@v4
         with:
-          buildkitd-config: .github/buildkit.toml
+          name: bake-meta-${{ matrix.target }}
+          path: ${{ runner.temp }}/bake-meta.json
+          if-no-files-found: error
+          retention-days: 1
+
+  build:
+    runs-on: ubuntu-24.04
+    needs:
+      - validate
+      - test
+      - e2e
+      - prepare-build
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - mainline
+          - buildkit
+          - desktop
+        platform: ${{ fromJson(needs.prepare-build.outputs.matrix) }}
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      -
+        name: Prepare
+        run: |
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+      -
+        name: Download meta bake definition
+        uses: actions/download-artifact@v4
+        with:
+          name: bake-meta-${{ matrix.target }}
+          path: ${{ runner.temp }}
       -
         name: Login to DockerHub
         if: startsWith(github.ref, 'refs/heads/')
@@ -212,14 +262,94 @@ jobs:
           username: ${{ secrets.DOCKERIO_USERNAME }}
           password: ${{ secrets.DOCKERIO_PASSWORD }}
       -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          buildkitd-config: .github/buildkit.toml
+      -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       -
-        name: Build ${{ matrix.target }}
+        name: Build
+        id: bake
         uses: docker/bake-action@v5
         with:
           files: |
             ./docker-bake.hcl
             ${{ steps.meta.outputs.bake-file }}
           targets: ${{ matrix.target }}-all
-          push: ${{ startsWith(github.ref, 'refs/heads/') }}
+          set: |
+            *.tags=
+            *.platform=${{ matrix.platform }}
+            *.output=type=image,"name=${{ env.REPO_SLUG }}",push-by-digest=true,name-canonical=true,push=${{ startsWith(github.ref, 'refs/heads/') }}
+      -
+        name: Export digest
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const digestsDir = '${{ runner.temp }}/digests';
+            if (!fs.existsSync(digestsDir)) {
+              fs.mkdirSync(digestsDir, { recursive: true });
+            }
+            const metadata = JSON.parse(process.env.BAKE_METADATA);
+            const digest = metadata[`${{ matrix.target }}-all`]['containerimage.digest'];
+            const digestFile = path.join(digestsDir, digest.replace('sha256:', ''));
+            fs.closeSync(fs.openSync(digestFile, 'w'));
+        env:
+          BAKE_METADATA: ${{ steps.bake.outputs.metadata }}
+      -
+        name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.target }}-${{ env.PLATFORM_PAIR }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    runs-on: ubuntu-24.04
+    if: startsWith(github.ref, 'refs/heads/')
+    needs:
+      - build
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - mainline
+          - buildkit
+          - desktop
+    steps:
+      -
+        name: Download meta bake definition
+        uses: actions/download-artifact@v4
+        with:
+          name: bake-meta-${{ matrix.target }}
+          path: ${{ runner.temp }}
+      -
+        name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-${{ matrix.target }}-*
+          merge-multiple: true
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERIO_USERNAME }}
+          password: ${{ secrets.DOCKERIO_PASSWORD }}
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      -
+        name: Create manifest list and push
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.target."meta-helper".tags | map(select(startswith("${{ env.REPO_SLUG }}")) | "-t " + .) | join(" ")' ${{ runner.temp }}/bake-meta.json) \
+            $(printf '${{ env.REPO_SLUG }}@sha256:%s ' *)
+      -
+        name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.REPO_SLUG }}:$(jq -r '.target."meta-helper".args.DOCKER_META_VERSION' ${{ runner.temp }}/bake-meta.json)
