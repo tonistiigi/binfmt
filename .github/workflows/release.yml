@@ -16,14 +16,21 @@ on:
         description: 'Bake target'
         required: true
         default: 'mainline'
+        type: choice
+        options:
+          - buildkit
+          - desktop
+          - mainline
       latest:
         description: 'Create latest tag'
         required: true
-        default: 'false'
+        default: false
+        type: boolean
       dry-run:
         description: 'Dry run'
         required: false
-        default: 'true'
+        default: true
+        type: boolean
 
 env:
   REPO_SLUG: vicamo/binfmt
@@ -68,8 +75,8 @@ jobs:
           tags: |
             type=raw,value=${{ steps.prep.outputs.tag_prefix }}${{ github.event.inputs.qemu_version }}-${{ github.run_number }}
             type=raw,value=${{ steps.prep.outputs.tag_prefix }}${{ github.event.inputs.qemu_version }}
-            type=raw,value=${{ steps.prep.outputs.tag_prefix }}latest,enable=${{ github.event.inputs.target != 'mainline' && github.event.inputs.latest == 'true' }}
-            type=raw,value=latest,enable=${{ github.event.inputs.target == 'mainline' && github.event.inputs.latest == 'true' }}
+            type=raw,value=${{ steps.prep.outputs.tag_prefix }}latest,enable=${{ github.event.inputs.target != 'mainline' && github.event.inputs.latest }}
+            type=raw,value=latest,enable=${{ github.event.inputs.target == 'mainline' && github.event.inputs.latest }}
           flavor: |
             latest=false
           labels: |
@@ -87,7 +94,7 @@ jobs:
       -
         name: Login to DockerHub
         uses: docker/login-action@v3
-        if: github.event.inputs.dry-run != 'true'
+        if: !github.event.inputs.dry-run
         with:
           username: ${{ secrets.DOCKERIO_USERNAME }}
           password: ${{ secrets.DOCKERIO_PASSWORD }}
@@ -99,7 +106,7 @@ jobs:
             ./docker-bake.hcl
             ${{ steps.meta.outputs.bake-file }}
           targets: ${{ github.event.inputs.target }}-all
-          push: ${{ github.event.inputs.dry-run != 'true' }}
+          push: ${{ !github.event.inputs.dry-run }}
           set: |
             *.cache-from=${{ env.REPO_SLUG }}:${{ steps.prep.outputs.tag_prefix }}${{ github.event.inputs.qemu_version }},${{ env.REPO_SLUG }}:${{ steps.prep.outputs.tag_prefix }}master
             *.cache-from=type=gha,scope=${{ env.CACHE_GHA_SCOPE_CROSS }}-${{ github.event.inputs.target }}
@@ -132,11 +139,11 @@ jobs:
       -
         name: Create Release
         uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda  # v2.2.1
-        if: github.event.inputs.dry-run != 'true'
+        if: !github.event.inputs.dry-run
         with:
           name: ${{ steps.prep.outputs.git_tag }}
           tag_name: ${{ steps.prep.outputs.git_tag }}
-          prerelease: ${{ github.event.inputs.latest != 'true' }}
+          prerelease: ${{ !github.event.inputs.latest }}
           files: bin/*.tar.gz
           fail_on_unmatched_files: false
           target_commitish: ${{ github.sha }}
