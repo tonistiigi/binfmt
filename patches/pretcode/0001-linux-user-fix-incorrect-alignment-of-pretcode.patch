@@ -1,0 +1,51 @@
+From: fanwj
+Subject: [PATCH] linux-user: fix incorrect alignment of pretcode
+Date: Fri, 12 May 2023 23:38:34 +0800 (GMT+08:00)
+Subject: [PATCH 1/1] linux-user: fix incorrect alignment of pretcode
+
+sigframe::pretcode & rt_sigframe::pretcode must align of 16n-sizeof(void*)
+instead of 16n, Because rsp align of 16n before instruction "call" in caller,
+After "call", push address of "call" in caller. sp of begin in callee is
+16n-sizeof(void*)
+
+Resolves: https://gitlab.com/qemu-project/qemu/-/issues/1648
+Signed-off-by: Fan WenJie <fanwj@mail.ustc.edu.cn>
+
+---
+ linux-user/i386/signal.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/linux-user/i386/signal.c b/linux-user/i386/signal.c
+index cb90711834..4479b853f7 100644
+--- a/linux-user/i386/signal.c
++++ b/linux-user/i386/signal.c
+@@ -156,6 +156,8 @@ struct sigframe {
+     abi_ulong extramask[TARGET_NSIG_WORDS-1];
+     char retcode[8];
+     /* fp state follows here */
++    abi_ulong unused QEMU_ALIGNED(8);
++    struct target_fpstate_32 fpstate;
+ };
+ 
+ struct rt_sigframe {
+@@ -167,6 +169,8 @@ struct rt_sigframe {
+     struct target_ucontext uc;
+     char retcode[8];
+     /* fp state follows here */
++    abi_ulong unused QEMU_ALIGNED(8);
++    struct target_fpstate_32 fpstate;
+ };
+ 
+ /*
+@@ -186,6 +190,8 @@ struct rt_sigframe {
+     struct target_ucontext uc;
+     struct target_siginfo info;
+     /* fp state follows here */
++    abi_ulong unused QEMU_ALIGNED(16);
++    struct target_fpstate_32 fpstate;
+ };
+ #endif
+ 
+-- 
+2.39.5 (Apple Git-154)
+
