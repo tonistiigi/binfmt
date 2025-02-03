@@ -83,12 +83,7 @@ execdirect() {
 @test "shebang-direct" {
   execdirect ./shebang.sh foo bar1
   assert_success
-  if [ -n "$BINFMT_EMULATOR" ]; then
-    # FIXME: direct exec patches should be fixed to not prepend workdir
-    assert_output "./printargs /work/shebang.sh foo bar1"
-  else
-    assert_output "./printargs ./shebang.sh foo bar1"
-  fi
+  assert_output "./printargs ./shebang.sh foo bar1"
 }
 
 @test "relative-exec" {
@@ -139,4 +134,10 @@ execdirect() {
   exec0 sh sh -c './shebang-path2.sh foo bar1 bar2'
   assert_success
   assert_output "./printargs foo bar1 bar2"
+}
+
+@test "change-workdir-and-read-self-exe" {
+  execdirect ./chwd /work/chwd
+  assert_success
+  assert_output "/work/chwd"
 }
