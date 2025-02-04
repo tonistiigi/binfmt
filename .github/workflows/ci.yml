@@ -133,7 +133,7 @@ jobs:
           docker buildx build --platform=linux/amd64,linux/arm64,linux/386,linux/arm,linux/ppc64le,linux/s390x --target=run --allow security.insecure --build-arg CONFIG_RT_GROUP_SCHED=false ./test
 
   e2e:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     needs:
       - prepare
     strategy:
