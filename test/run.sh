@@ -3,6 +3,7 @@
 ln -s /usr/bin/env /work/env
 go build print/printargs.go
 go build exec/execargv0.go
+go build change-workdir/chwd.go
 
 echo "testing $(uname -m)"
 ./test.bats
@@ -18,6 +19,7 @@ fi
 ln -sf /crossarch/usr/bin/env /work/env
 GOARCH=$crossArch go build print/printargs.go
 GOARCH=$crossArch go build exec/execargv0.go
+GOARCH=$crossArch go build change-workdir/chwd.go
 
 if ./printargs >/dev/null 2>/dev/nulll; then
   echo "can't test emulator because $crossEmulator emulator is installed in the kernel"
