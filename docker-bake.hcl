@@ -1,4 +1,4 @@
-variable "REPO" {
+variable "REPO_SLUG" {
   default = "tonistiigi/binfmt"
 }
 variable "QEMU_REPO" {
@@ -13,7 +13,7 @@ variable "QEMU_PATCHES" {
 
 // Special target: https://github.com/docker/metadata-action#bake-definition
 target "meta-helper" {
-  tags = ["${REPO}:test"]
+  tags = ["${REPO_SLUG}:test"]
 }
 
 group "default" {
@@ -48,7 +48,7 @@ target "mainline" {
     QEMU_PRESERVE_ARGV0 = "1"
   }
   cache-to = ["type=inline"]
-  cache-from = ["${REPO}:master"]
+  cache-from = ["${REPO_SLUG}:master"]
 }
 
 target "mainline-all" {
@@ -62,7 +62,7 @@ target "buildkit" {
     QEMU_PATCHES = "${QEMU_PATCHES},buildkit-direct-execve-v9.2"
     QEMU_PRESERVE_ARGV0 = ""
   }
-  cache-from = ["${REPO}:buildkit-master"]
+  cache-from = ["${REPO_SLUG}:buildkit-master"]
   target = "binaries"
 }
 
@@ -82,7 +82,7 @@ target "desktop" {
   args = {
     QEMU_PATCHES = "${QEMU_PATCHES},pretcode"
   }
-  cache-from = ["${REPO}:desktop-master"]
+  cache-from = ["${REPO_SLUG}:desktop-master"]
 }
 
 target "desktop-all" {
