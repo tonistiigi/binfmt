@@ -148,6 +148,9 @@ jobs:
         platform:
           - linux/arm/v7
         include:
+          - target: mainline
+            dockerfile: libc-bin
+            platform: linux/arm64
           - target: desktop
             dockerfile: tini
             platform: linux/arm64
