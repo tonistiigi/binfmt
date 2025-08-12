@@ -31,7 +31,7 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       -
         name: Expose GitHub Runtime
         uses: crazy-max/ghaction-github-runtime@v3
@@ -60,7 +60,7 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       -
         name: Expose GitHub Runtime
         uses: crazy-max/ghaction-github-runtime@v3
@@ -88,7 +88,7 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       -
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -169,7 +169,7 @@ jobs:
           fi
       -
         name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       -
         name: Load for testing
         uses: docker/bake-action@v5
@@ -227,7 +227,7 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       -
         name: Create matrix
         id: platforms
@@ -283,7 +283,7 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       -
         name: Prepare
         run: |
