@@ -328,7 +328,7 @@ jobs:
             *.cache-to=type=gha,scope=${{ env.CACHE_GHA_SCOPE_CROSS }}-${{ matrix.target }}-${{ env.PLATFORM_PAIR }}
       -
         name: Export digest
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const fs = require('fs');
