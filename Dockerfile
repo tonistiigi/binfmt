@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 
 ARG GO_VERSION=1.23
-ARG ALPINE_VERSION=3.21
-ARG XX_VERSION=1.6.1
+ARG ALPINE_VERSION=3.22
+ARG XX_VERSION=1.7.0
 
 ARG QEMU_VERSION=HEAD
 ARG QEMU_REPO=https://github.com/qemu/qemu
@@ -62,13 +62,13 @@ RUN <<eof
 eof
 
 FROM --platform=$BUILDPLATFORM alpine:${ALPINE_VERSION} AS base
-RUN apk add --no-cache git clang lld python3 llvm make ninja pkgconfig glib-dev gcc musl-dev perl bash
+RUN apk add --no-cache git clang lld python3 llvm make ninja pkgconfig glib-dev gcc musl-dev pcre2-dev perl bash
 COPY --from=xx / /
 ENV PATH=/qemu/install-scripts:$PATH
 WORKDIR /qemu
 
 ARG TARGETPLATFORM
-RUN xx-apk add --no-cache musl-dev gcc glib-dev glib-static linux-headers zlib-static
+RUN xx-apk add --no-cache musl-dev gcc glib-dev glib-static linux-headers pcre2-dev pcre2-static zlib-static
 RUN set -e; \
   [ "$(xx-info arch)" = "ppc64le" ] && XX_CC_PREFER_LINKER=ld xx-clang --setup-target-triple; \
   [ "$(xx-info arch)" = "386" ] && XX_CC_PREFER_LINKER=ld xx-clang --setup-target-triple; \
