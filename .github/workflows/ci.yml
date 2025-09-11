@@ -300,6 +300,8 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           buildkitd-config: .github/buildkit.toml
+          buildkitd-flags: --debug
+          driver-opts: image=crazymax/buildkit:cachev2
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v3
