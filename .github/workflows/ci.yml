@@ -95,16 +95,18 @@ jobs:
       -
         name: Test buildkit
         if: matrix.target == 'buildkit'
-        uses: docker/bake-action@v5
+        uses: docker/bake-action@v6
         with:
+          source: .
           targets: buildkit-test
           set: |
             *.cache-from=type=gha,scope=${{ env.CACHE_GHA_SCOPE }}-${{ matrix.target }}
       -
         name: Load mainline for testing
         if: matrix.target == 'mainline'
-        uses: docker/bake-action@v5
+        uses: docker/bake-action@v6
         with:
+          source: .
           targets: mainline
           load: true
           set: |
@@ -172,8 +174,9 @@ jobs:
         uses: actions/checkout@v5
       -
         name: Load for testing
-        uses: docker/bake-action@v5
+        uses: docker/bake-action@v6
         with:
+          source: .
           targets: ${{ matrix.target }}
           load: true
           set: |
@@ -313,8 +316,9 @@ jobs:
       -
         name: Build
         id: bake
-        uses: docker/bake-action@v5
+        uses: docker/bake-action@v6
         with:
+          source: .
           files: |
             ./docker-bake.hcl
             ${{ steps.meta.outputs.bake-file }}
