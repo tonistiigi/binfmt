@@ -261,7 +261,7 @@ jobs:
           mv "${{ steps.meta.outputs.bake-file }}" "${{ runner.temp }}/bake-meta.json"
       -
         name: Upload meta bake definition
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: bake-meta-${{ matrix.target }}
           path: ${{ runner.temp }}/bake-meta.json
@@ -349,7 +349,7 @@ jobs:
           BAKE_METADATA: ${{ steps.bake.outputs.metadata }}
       -
         name: Upload digest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: digests-${{ matrix.target }}-${{ env.PLATFORM_PAIR }}
           path: ${{ runner.temp }}/digests/*
