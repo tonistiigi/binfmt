@@ -89,6 +89,13 @@ RUN --mount=target=.,from=src,src=/src/qemu,rw --mount=target=./install-scripts,
 ARG BINARY_PREFIX
 RUN cd /usr/bin; [ -z "$BINARY_PREFIX" ] || for f in $(ls qemu-*); do ln -s $f $BINARY_PREFIX$f; done
 
+FROM build AS build-archive-run
+RUN cd /usr/bin && mkdir -p /archive && \
+  tar czvfh "/archive/${BINARY_PREFIX}qemu_${QEMU_VERSION}_$(echo $TARGETPLATFORM | sed 's/\//-/g').tar.gz" ${BINARY_PREFIX}qemu*
+
+FROM scratch AS build-archive
+COPY --from=build-archive-run /archive/* /
+
 FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine${ALPINE_VERSION} AS binfmt
 COPY --from=xx / /
 ENV CGO_ENABLED=0
@@ -102,11 +109,13 @@ RUN --mount=target=. \
     -o /go/bin/binfmt ./cmd/binfmt && \
     xx-verify --static /go/bin/binfmt
 
-FROM build AS build-archive
+FROM build AS binfmt-archive-run
 COPY --from=binfmt /go/bin/binfmt /usr/bin/binfmt
 RUN cd /usr/bin && mkdir -p /archive && \
-  tar czvfh "/archive/${BINARY_PREFIX}qemu_${QEMU_VERSION}_$(echo $TARGETPLATFORM | sed 's/\//-/g').tar.gz" ${BINARY_PREFIX}qemu* && \
   tar czvfh "/archive/binfmt_$(echo $TARGETPLATFORM | sed 's/\//-/g').tar.gz" binfmt
+
+FROM scratch AS binfmt-archive
+COPY --from=binfmt-archive-run /archive/* /
 
 # binaries contains only the compiled QEMU binaries
 FROM scratch AS binaries
@@ -114,9 +123,10 @@ FROM scratch AS binaries
 ARG BINARY_PREFIX
 COPY --from=build usr/bin/${BINARY_PREFIX}qemu-* /
 
-# archive returns the tarball of binaries
+# archive returns the tarball of build and binfmt
 FROM scratch AS archive
-COPY --from=build-archive /archive/* /
+COPY --from=build-archive / /
+COPY --from=binfmt-archive / /
 
 FROM --platform=$BUILDPLATFORM tonistiigi/bats-assert AS assert
 

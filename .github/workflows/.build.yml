@@ -144,32 +144,32 @@ jobs:
           username: ${{ secrets.DOCKERIO_USERNAME }}
           password: ${{ secrets.DOCKERIO_PASSWORD }}
 
-  binaries:
+  qemu-archive:
     uses: docker/github-builder-experimental/.github/workflows/bake.yml@47f32776c3944ee241263377b6c0915a5788bb95
     if: inputs.target == 'mainline'
     permissions:
       contents: read # same as global permission
       id-token: write # for signing attestation(s) with GitHub OIDC Token
     with:
-      target: archive-all
+      target: build-archive-all
       output: local
       push: ${{ ! inputs.dry-run }}
-      artifact-name: binfmt
+      artifact-name: qemu-archive
       cache: true
-      cache-scope: binaries
+      cache-scope: qemu-archive
       setup-qemu: true
 
-  binaries-finalize:
+  qemu-archive-finalize:
     runs-on: ubuntu-24.04
     needs:
-      - binaries
+      - qemu-archive
     steps:
       -
         name: Download artifacts
         uses: actions/download-artifact@v6
         with:
           path: /tmp/buildx-output
-          pattern: ${{ needs.binaries.outputs.artifact-name }}*
+          pattern: ${{ needs.qemu-archive.outputs.artifact-name }}*
           merge-multiple: true
       -
         name: Rename provenance and sbom
@@ -177,10 +177,67 @@ jobs:
           for pdir in /tmp/buildx-output/*/; do
             (
               cd "$pdir"
-              platform=$(basename "$pdir")
-              mv "provenance.json" "${platform}.provenance.json"
+              binname=$(find . -name 'qemu_*')
+              filename=$(basename "$binname" | sed -E 's/\.(tar\.gz|zip)$//')
+              mv "provenance.json" "${filename}.provenance.json"
               if [ -f "provenance.sigstore.json" ]; then
-                mv "provenance.sigstore.json" "${platform}.provenance.sigstore.json"
+                mv "provenance.sigstore.json" "${filename}.provenance.sigstore.json"
+              fi
+            )
+          done
+          mkdir -p /tmp/qemu-artifacts
+          mv /tmp/buildx-output/**/* /tmp/qemu-artifacts
+      -
+        name: List artifacts
+        working-directory: /tmp/qemu-artifacts
+        run: |
+          tree -nh .
+      -
+        name: Upload qemu archives release
+        uses: actions/upload-artifact@v5
+        with:
+          name: release-qemu
+          path: /tmp/qemu-artifacts/*
+          if-no-files-found: error
+
+  binfmt-archive:
+    uses: docker/github-builder-experimental/.github/workflows/bake.yml@47f32776c3944ee241263377b6c0915a5788bb95
+    if: inputs.target == 'mainline'
+    permissions:
+      contents: read # same as global permission
+      id-token: write # for signing attestation(s) with GitHub OIDC Token
+    with:
+      target: binfmt-archive-all
+      output: local
+      push: ${{ ! inputs.dry-run }}
+      artifact-name: binfmt-archive
+      cache: true
+      cache-scope: binfmt-archive
+      setup-qemu: true
+
+  binfmt-archive-finalize:
+    runs-on: ubuntu-24.04
+    needs:
+      - binfmt-archive
+    steps:
+      -
+        name: Download artifacts
+        uses: actions/download-artifact@v6
+        with:
+          path: /tmp/buildx-output
+          pattern: ${{ needs.binfmt-archive.outputs.artifact-name }}*
+          merge-multiple: true
+      -
+        name: Rename provenance and sbom
+        run: |
+          for pdir in /tmp/buildx-output/*/; do
+            (
+              cd "$pdir"
+              binname=$(find . -name 'binfmt_*')
+              filename=$(basename "$binname" | sed -E 's/\.(tar\.gz|zip)$//')
+              mv "provenance.json" "${filename}.provenance.json"
+              if [ -f "provenance.sigstore.json" ]; then
+                mv "provenance.sigstore.json" "${filename}.provenance.sigstore.json"
               fi
             )
           done
@@ -192,27 +249,36 @@ jobs:
         run: |
           tree -nh .
       -
-        name: Upload release binaries
+        name: Upload binfmt archives release
         uses: actions/upload-artifact@v5
         with:
-          name: release
+          name: release-binfmt
           path: /tmp/binfmt-artifacts/*
           if-no-files-found: error
 
   release:
     runs-on: ubuntu-24.04
+    if: always()
     needs:
       - prepare-build
       - image
-      - binaries-finalize
+      - qemu-archive-finalize
+      - binfmt-archive-finalize
     steps:
       -
-        name: Download release binaries
+        name: Download archives releases
         if: inputs.target == 'mainline'
         uses: actions/download-artifact@v6
         with:
+          pattern: release-*
+          merge-multiple: true
           path: ${{ runner.temp }}/artifacts
-          name: release
+      -
+        name: List artifacts
+        if: inputs.target == 'mainline'
+        working-directory: ${{ runner.temp }}/artifacts
+        run: |
+          tree -nh .
       -
         name: Prepare
         id: prepare

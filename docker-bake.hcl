@@ -26,13 +26,6 @@ group "default" {
   targets = ["binaries"]
 }
 
-target "binaries" {
-  inherits = ["_common"]
-  output = ["./bin"]
-  platforms = ["local"]
-  target = "binaries"
-}
-
 target "all-arch" {
   platforms = [
     "linux/amd64",
@@ -44,6 +37,17 @@ target "all-arch" {
     "linux/riscv64",
     "linux/386",
   ]
+}
+
+target "binaries" {
+  inherits = ["_common"]
+  output = ["./bin"]
+  platforms = ["local"]
+  target = "binaries"
+}
+
+target "binaries-all" {
+  inherits = ["binaries", "all-arch"]
 }
 
 target "mainline" {
@@ -94,6 +98,26 @@ target "desktop" {
 
 target "desktop-all" {
   inherits = ["desktop", "all-arch"]
+}
+
+target "build-archive" {
+  inherits = ["mainline"]
+  target = "build-archive"
+  output = ["./bin"]
+}
+
+target "build-archive-all" {
+  inherits = ["build-archive", "all-arch"]
+}
+
+target "binfmt-archive" {
+  inherits = ["mainline"]
+  target = "binfmt-archive"
+  output = ["./bin"]
+}
+
+target "binfmt-archive-all" {
+  inherits = ["binfmt-archive", "all-arch"]
 }
 
 target "archive" {
