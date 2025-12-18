@@ -104,21 +104,20 @@ jobs:
             core.setOutput('git_tag', gitTag);
 
   image:
-    uses: docker/github-builder-experimental/.github/workflows/bake.yml@47f32776c3944ee241263377b6c0915a5788bb95
+    uses: docker/github-builder-experimental/.github/workflows/bake.yml@af87571fd3347a8a760e6053efba57325c00b74b
     needs:
       - prepare-build
     permissions:
       contents: read # same as global permission
       id-token: write # for signing attestation(s) with GitHub OIDC Token
     with:
+      setup-qemu: true
       target: ${{ inputs.target }}-all
       output: image
       push: ${{ ! inputs.dry-run }}
-      envs: |
-        QEMU_REPO=${{ needs.prepare-build.outputs.qemu_repo }}
-        QEMU_VERSION=${{ needs.prepare-build.outputs.qemu_version }}
-      cache: true
-      cache-scope: binfmt-${{ inputs.target }}
+      set: |
+        *.args.QEMU_REPO=${{ needs.prepare-build.outputs.qemu_repo }}
+        *.args.QEMU_VERSION=${{ needs.prepare-build.outputs.qemu_version }}
       set-meta-annotations: true
       meta-images: |
         ${{ needs.prepare-build.outputs.image_name }}
@@ -137,7 +136,6 @@ jobs:
         org.opencontainers.image.title=Binfmt
         org.opencontainers.image.description=Cross-platform emulator collection distributed with Docker images
       meta-bake-target: meta-helper
-      setup-qemu: true
     secrets:
       registry-auths: |
         - registry: docker.io
@@ -145,19 +143,18 @@ jobs:
           password: ${{ secrets.DOCKERIO_PASSWORD }}
 
   qemu-archive:
-    uses: docker/github-builder-experimental/.github/workflows/bake.yml@47f32776c3944ee241263377b6c0915a5788bb95
+    uses: docker/github-builder-experimental/.github/workflows/bake.yml@af87571fd3347a8a760e6053efba57325c00b74b
     if: inputs.target == 'mainline'
     permissions:
       contents: read # same as global permission
       id-token: write # for signing attestation(s) with GitHub OIDC Token
     with:
+      setup-qemu: true
+      artifact-name: qemu-archive
+      artifact-upload: true
       target: build-archive-all
       output: local
-      push: ${{ ! inputs.dry-run }}
-      artifact-name: qemu-archive
-      cache: true
-      cache-scope: qemu-archive
-      setup-qemu: true
+      sign: ${{ ! inputs.dry-run }}
 
   qemu-archive-finalize:
     runs-on: ubuntu-24.04
@@ -201,19 +198,18 @@ jobs:
           if-no-files-found: error
 
   binfmt-archive:
-    uses: docker/github-builder-experimental/.github/workflows/bake.yml@47f32776c3944ee241263377b6c0915a5788bb95
+    uses: docker/github-builder-experimental/.github/workflows/bake.yml@af87571fd3347a8a760e6053efba57325c00b74b
     if: inputs.target == 'mainline'
     permissions:
       contents: read # same as global permission
       id-token: write # for signing attestation(s) with GitHub OIDC Token
     with:
+      setup-qemu: true
+      artifact-name: binfmt-archive
+      artifact-upload: true
       target: binfmt-archive-all
       output: local
-      push: ${{ ! inputs.dry-run }}
-      artifact-name: binfmt-archive
-      cache: true
-      cache-scope: binfmt-archive
-      setup-qemu: true
+      sign: ${{ ! inputs.dry-run }}
 
   binfmt-archive-finalize:
     runs-on: ubuntu-24.04
