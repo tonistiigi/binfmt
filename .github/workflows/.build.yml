@@ -1,0 +1,309 @@
+# reusable workflow
+name: .build
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        type: string
+        required: true
+      release:
+        type: boolean
+        required: false
+        default: false
+      qemu_repo:
+        type: string
+        required: false
+      qemu_ref:
+        type: string
+        required: false
+      qemu_version:
+        type: string
+        required: false
+      latest:
+        type: boolean
+        required: false
+        default: false
+      dry-run:
+        type: boolean
+        required: false
+        default: true
+
+env:
+  REPO_SLUG: tonistiigi/binfmt
+
+jobs:
+  prepare-build:
+    runs-on: ubuntu-24.04
+    outputs:
+      image_name: ${{ env.REPO_SLUG }}
+      qemu_repo: ${{ steps.set.outputs.qemu_repo }}
+      qemu_ref: ${{ steps.set.outputs.qemu_ref }}
+      qemu_version: ${{ steps.set.outputs.qemu_version }}
+      tag_prefix: ${{ steps.set.outputs.tag_prefix }}
+      git_tag: ${{ steps.set.outputs.git_tag }}
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v5
+      -
+        name: Set outputs
+        id: set
+        uses: actions/github-script@v8
+        env:
+          INPUT_GITHUB-RUN-NUMBER: ${{ github.run_number }}
+          INPUT_TARGET: ${{ inputs.target }}
+          INPUT_QEMU_REPO: ${{ inputs.qemu_repo }}
+          INPUT_QEMU_REF: ${{ inputs.qemu_ref }}
+          INPUT_QEMU_VERSION: ${{ inputs.qemu_version }}
+        with:
+          script: |
+            const inpGitHubRunNumber = core.getInput('github-run-number');
+            const inpTarget = core.getInput('target');
+            const inpQemuRepo = core.getInput('qemu_repo');
+            const inpQemuRef = core.getInput('qemu_ref');
+            const inpQemuVersion = core.getInput('qemu_version');
+            
+            let qemuRepo = '';
+            let qemuRef = '';
+            let qemuVersion = '';
+            await exec.getExecOutput('docker', ['buildx', 'bake', inpTarget, '--print'], {
+              ignoreReturnCode: true,
+              silent: true
+            }).then(res => {
+              if (res.stderr.length > 0 && res.exitCode != 0) {
+                throw new Error(res.stderr);
+              }
+              const dt = JSON.parse(res.stdout.trim());
+              qemuRepo = dt.target[inpTarget].args.QEMU_REPO;
+              qemuRef = dt.target[inpTarget].args.QEMU_REF;
+              qemuVersion = dt.target[inpTarget].args.QEMU_VERSION;
+              if (inpQemuRepo !== '') {
+                qemuRepo = inpQemuRepo;
+              }
+              if (inpQemuRef !== '') {
+                qemuVersion = inpQemuRef;
+                qemuRef = inpQemuRef;
+              }
+            });
+            
+            let tagPrefix = '';
+            let gitTag = '';
+            if (inpTarget === 'mainline') {
+              tagPrefix = 'qemu-';
+              gitTag = `deploy/${inpQemuVersion}-${inpGitHubRunNumber}`;
+            } else {
+              tagPrefix = `${inpTarget}-`;
+              gitTag = `${inpTarget}/${inpQemuVersion}-${inpGitHubRunNumber}`;
+            }
+            
+            core.setOutput('qemu_repo', qemuRepo);
+            core.setOutput('qemu_ref', qemuRef);
+            core.setOutput('qemu_version', qemuVersion);
+            core.setOutput('tag_prefix', tagPrefix);
+            core.setOutput('git_tag', gitTag);
+
+  image:
+    uses: docker/github-builder-experimental/.github/workflows/bake.yml@af87571fd3347a8a760e6053efba57325c00b74b
+    needs:
+      - prepare-build
+    permissions:
+      contents: read # same as global permission
+      id-token: write # for signing attestation(s) with GitHub OIDC Token
+    with:
+      setup-qemu: true
+      target: ${{ inputs.target }}-all
+      output: image
+      push: ${{ ! inputs.dry-run }}
+      set: |
+        *.args.QEMU_REPO=${{ needs.prepare-build.outputs.qemu_repo }}
+        *.args.QEMU_VERSION=${{ needs.prepare-build.outputs.qemu_version }}
+      set-meta-annotations: true
+      meta-images: |
+        ${{ needs.prepare-build.outputs.image_name }}
+      meta-tags: |
+        type=ref,event=branch,enable=${{ ! inputs.release && inputs.target == 'mainline' }}
+        type=ref,event=branch,prefix=${{ inputs.target }}-,enable=${{ ! inputs.release && inputs.target != 'mainline' }}
+        type=ref,event=pr,enable=${{ ! inputs.release && inputs.target == 'mainline' }}
+        type=ref,event=pr,prefix=${{ inputs.target }}-,enable=${{ ! inputs.release && inputs.target != 'mainline' }}
+        type=raw,value=${{ needs.prepare-build.outputs.tag_prefix }}${{ needs.prepare-build.outputs.qemu_version }}-${{ github.run_number }},enable=${{ inputs.release }}
+        type=raw,value=${{ needs.prepare-build.outputs.tag_prefix }}${{ needs.prepare-build.outputs.qemu_version }},enable=${{ inputs.release }}
+        type=raw,value=${{ needs.prepare-build.outputs.tag_prefix }}latest,enable=${{ inputs.release && inputs.target != 'mainline' && inputs.latest }}
+        type=raw,value=latest,enable=${{ inputs.release && inputs.target == 'mainline' && inputs.latest }}
+      meta-flavor: |
+        latest=false
+      meta-annotations: |
+        org.opencontainers.image.title=Binfmt
+        org.opencontainers.image.description=Cross-platform emulator collection distributed with Docker images
+      meta-bake-target: meta-helper
+    secrets:
+      registry-auths: |
+        - registry: docker.io
+          username: ${{ secrets.DOCKERIO_USERNAME }}
+          password: ${{ secrets.DOCKERIO_PASSWORD }}
+
+  qemu-archive:
+    uses: docker/github-builder-experimental/.github/workflows/bake.yml@af87571fd3347a8a760e6053efba57325c00b74b
+    if: inputs.target == 'mainline'
+    permissions:
+      contents: read # same as global permission
+      id-token: write # for signing attestation(s) with GitHub OIDC Token
+    with:
+      setup-qemu: true
+      artifact-name: qemu-archive
+      artifact-upload: true
+      target: build-archive-all
+      output: local
+      sign: ${{ ! inputs.dry-run }}
+
+  qemu-archive-finalize:
+    runs-on: ubuntu-24.04
+    needs:
+      - qemu-archive
+    steps:
+      -
+        name: Download artifacts
+        uses: actions/download-artifact@v6
+        with:
+          path: /tmp/buildx-output
+          pattern: ${{ needs.qemu-archive.outputs.artifact-name }}*
+          merge-multiple: true
+      -
+        name: Rename provenance and sbom
+        run: |
+          for pdir in /tmp/buildx-output/*/; do
+            (
+              cd "$pdir"
+              binname=$(find . -name 'qemu_*')
+              filename=$(basename "$binname" | sed -E 's/\.(tar\.gz|zip)$//')
+              mv "provenance.json" "${filename}.provenance.json"
+              if [ -f "provenance.sigstore.json" ]; then
+                mv "provenance.sigstore.json" "${filename}.provenance.sigstore.json"
+              fi
+            )
+          done
+          mkdir -p /tmp/qemu-artifacts
+          mv /tmp/buildx-output/**/* /tmp/qemu-artifacts
+      -
+        name: List artifacts
+        working-directory: /tmp/qemu-artifacts
+        run: |
+          tree -nh .
+      -
+        name: Upload qemu archives release
+        uses: actions/upload-artifact@v5
+        with:
+          name: release-qemu
+          path: /tmp/qemu-artifacts/*
+          if-no-files-found: error
+
+  binfmt-archive:
+    uses: docker/github-builder-experimental/.github/workflows/bake.yml@af87571fd3347a8a760e6053efba57325c00b74b
+    if: inputs.target == 'mainline'
+    permissions:
+      contents: read # same as global permission
+      id-token: write # for signing attestation(s) with GitHub OIDC Token
+    with:
+      setup-qemu: true
+      artifact-name: binfmt-archive
+      artifact-upload: true
+      target: binfmt-archive-all
+      output: local
+      sign: ${{ ! inputs.dry-run }}
+
+  binfmt-archive-finalize:
+    runs-on: ubuntu-24.04
+    needs:
+      - binfmt-archive
+    steps:
+      -
+        name: Download artifacts
+        uses: actions/download-artifact@v6
+        with:
+          path: /tmp/buildx-output
+          pattern: ${{ needs.binfmt-archive.outputs.artifact-name }}*
+          merge-multiple: true
+      -
+        name: Rename provenance and sbom
+        run: |
+          for pdir in /tmp/buildx-output/*/; do
+            (
+              cd "$pdir"
+              binname=$(find . -name 'binfmt_*')
+              filename=$(basename "$binname" | sed -E 's/\.(tar\.gz|zip)$//')
+              mv "provenance.json" "${filename}.provenance.json"
+              if [ -f "provenance.sigstore.json" ]; then
+                mv "provenance.sigstore.json" "${filename}.provenance.sigstore.json"
+              fi
+            )
+          done
+          mkdir -p /tmp/binfmt-artifacts
+          mv /tmp/buildx-output/**/* /tmp/binfmt-artifacts
+      -
+        name: List artifacts
+        working-directory: /tmp/binfmt-artifacts
+        run: |
+          tree -nh .
+      -
+        name: Upload binfmt archives release
+        uses: actions/upload-artifact@v5
+        with:
+          name: release-binfmt
+          path: /tmp/binfmt-artifacts/*
+          if-no-files-found: error
+
+  release:
+    runs-on: ubuntu-24.04
+    if: always()
+    needs:
+      - prepare-build
+      - image
+      - qemu-archive-finalize
+      - binfmt-archive-finalize
+    steps:
+      -
+        name: Download archives releases
+        if: inputs.target == 'mainline'
+        uses: actions/download-artifact@v6
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/artifacts
+      -
+        name: List artifacts
+        if: inputs.target == 'mainline'
+        working-directory: ${{ runner.temp }}/artifacts
+        run: |
+          tree -nh .
+      -
+        name: Prepare
+        id: prepare
+        uses: actions/github-script@v8
+        env:
+          INPUT_META-JSON: ${{ needs.image.outputs.meta-json }}
+        with:
+          script: |
+            const inpMetaJSON = JSON.parse(core.getInput('meta-json'));
+            const imageTag = inpMetaJSON['tag-names'][0];
+            core.setOutput('image_tag', imageTag);
+      -
+        name: Create Release
+        uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090  # v2.4.1
+        if: ${{ inputs.release && ! inputs.dry-run }}
+        with:
+          name: ${{ needs.prepare-build.outputs.git_tag }}
+          tag_name: ${{ needs.prepare-build.outputs.git_tag }}
+          prerelease: ${{ ! inputs.latest }}
+          files: ${{ runner.temp }}/artifacts/*
+          fail_on_unmatched_files: false
+          target_commitish: ${{ github.sha }}
+          body: |
+            ```
+            docker run --privileged --rm ${{ env.REPO_SLUG }}:${{ steps.prepare.outputs.image_tag }} --uninstall qemu-*
+            docker run --privileged --rm ${{ env.REPO_SLUG }}:${{ steps.prepare.outputs.image_tag }} --install all
+            ```
+            
+            * logs: ${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}
+            * qemu repo: ${{ needs.prepare-build.outputs.qemu_repo }}/tree/${{ needs.prepare-build.outputs.qemu_ref }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

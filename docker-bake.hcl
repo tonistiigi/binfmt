@@ -1,4 +1,4 @@
-variable "REPO" {
+variable "REPO_SLUG" {
   default = "tonistiigi/binfmt"
 }
 variable "QEMU_REPO" {
@@ -13,17 +13,17 @@ variable "QEMU_PATCHES" {
 
 // Special target: https://github.com/docker/metadata-action#bake-definition
 target "meta-helper" {
-  tags = ["${REPO}:test"]
+  tags = ["${REPO_SLUG}:test"]
+}
+
+target "_common" {
+  args = {
+    BUILDKIT_CONTEXT_KEEP_GIT_DIR = 1
+  }
 }
 
 group "default" {
   targets = ["binaries"]
-}
-
-target "binaries" {
-  output = ["./bin"]
-  platforms = ["local"]
-  target = "binaries"
 }
 
 target "all-arch" {
@@ -39,8 +39,19 @@ target "all-arch" {
   ]
 }
 
+target "binaries" {
+  inherits = ["_common"]
+  output = ["./bin"]
+  platforms = ["local"]
+  target = "binaries"
+}
+
+target "binaries-all" {
+  inherits = ["binaries", "all-arch"]
+}
+
 target "mainline" {
-  inherits = ["meta-helper"]
+  inherits = ["meta-helper", "_common"]
   args = {
     QEMU_REPO = QEMU_REPO
     QEMU_VERSION = QEMU_VERSION
@@ -48,7 +59,7 @@ target "mainline" {
     QEMU_PRESERVE_ARGV0 = "1"
   }
   cache-to = ["type=inline"]
-  cache-from = ["${REPO}:master"]
+  cache-from = ["${REPO_SLUG}:master"]
 }
 
 target "mainline-all" {
@@ -62,7 +73,7 @@ target "buildkit" {
     QEMU_PATCHES = "${QEMU_PATCHES},buildkit-direct-execve-v10.0"
     QEMU_PRESERVE_ARGV0 = ""
   }
-  cache-from = ["${REPO}:buildkit-master"]
+  cache-from = ["${REPO_SLUG}:buildkit-master"]
   target = "binaries"
 }
 
@@ -82,11 +93,31 @@ target "desktop" {
   args = {
     QEMU_PATCHES = "${QEMU_PATCHES},pretcode"
   }
-  cache-from = ["${REPO}:desktop-master"]
+  cache-from = ["${REPO_SLUG}:desktop-master"]
 }
 
 target "desktop-all" {
   inherits = ["desktop", "all-arch"]
+}
+
+target "build-archive" {
+  inherits = ["mainline"]
+  target = "build-archive"
+  output = ["./bin"]
+}
+
+target "build-archive-all" {
+  inherits = ["build-archive", "all-arch"]
+}
+
+target "binfmt-archive" {
+  inherits = ["mainline"]
+  target = "binfmt-archive"
+  output = ["./bin"]
+}
+
+target "binfmt-archive-all" {
+  inherits = ["binfmt-archive", "all-arch"]
 }
 
 target "archive" {

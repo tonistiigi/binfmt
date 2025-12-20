@@ -16,7 +16,6 @@ on:
 env:
   REPO_SLUG: tonistiigi/binfmt
   CACHE_GHA_SCOPE: binfmt
-  CACHE_GHA_SCOPE_CROSS: binfmt-cross
 
 jobs:
   prepare:
@@ -216,65 +215,13 @@ jobs:
           log_check: ${{ matrix.logs_check }}
           timeout: 120
 
-  prepare-build:
-    runs-on: ubuntu-24.04
-    outputs:
-      matrix: ${{ steps.platforms.outputs.matrix }}
-    strategy:
-      fail-fast: false
-      matrix:
-        target:
-          - mainline
-          - buildkit
-          - desktop
-    steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v5
-      -
-        name: Create matrix
-        id: platforms
-        run: |
-          echo "matrix=$(docker buildx bake ${{ matrix.target }}-all --print | jq -cr '.target."${{ matrix.target }}-all".platforms')" >>${GITHUB_OUTPUT}
-      -
-        name: Show matrix
-        run: |
-          echo ${{ steps.platforms.outputs.matrix }}
-      -
-        name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REPO_SLUG }}
-          tags: |
-            type=ref,event=branch,enable=${{ matrix.target == 'mainline' }}
-            type=ref,event=branch,prefix=${{ matrix.target }}-,enable=${{ matrix.target != 'mainline' }}
-          flavor: |
-            latest=false
-          labels: |
-            org.opencontainers.image.title=Binfmt
-            org.opencontainers.image.description=Cross-platform emulator collection distributed with Docker images
-          bake-target: meta-helper
-      -
-        name: Rename meta bake definition file
-        run: |
-          mv "${{ steps.meta.outputs.bake-file }}" "${{ runner.temp }}/bake-meta.json"
-      -
-        name: Upload meta bake definition
-        uses: actions/upload-artifact@v4
-        with:
-          name: bake-meta-${{ matrix.target }}
-          path: ${{ runner.temp }}/bake-meta.json
-          if-no-files-found: error
-          retention-days: 1
-
   build:
-    runs-on: ubuntu-24.04
+    uses: ./.github/workflows/.build.yml
+    secrets: inherit
     needs:
       - validate
       - test
       - e2e
-      - prepare-build
     strategy:
       fail-fast: false
       matrix:
@@ -282,122 +229,6 @@ jobs:
           - mainline
           - buildkit
           - desktop
-        platform: ${{ fromJson(needs.prepare-build.outputs.matrix) }}
-    steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v5
-      -
-        name: Prepare
-        run: |
-          platform=${{ matrix.platform }}
-          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
-      -
-        name: Download meta bake definition
-        uses: actions/download-artifact@v5
-        with:
-          name: bake-meta-${{ matrix.target }}
-          path: ${{ runner.temp }}
-      -
-        name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          buildkitd-config: .github/buildkit.toml
-      -
-        name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-      -
-        name: Login to DockerHub
-        if: startsWith(github.ref, 'refs/heads/')
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERIO_USERNAME }}
-          password: ${{ secrets.DOCKERIO_PASSWORD }}
-      -
-        name: Build
-        id: bake
-        uses: docker/bake-action@v6
-        with:
-          source: .
-          files: |
-            ./docker-bake.hcl
-            ${{ steps.meta.outputs.bake-file }}
-          targets: ${{ matrix.target }}-all
-          set: |
-            *.tags=
-            *.platform=${{ matrix.platform }}
-            *.output=type=image,"name=${{ env.REPO_SLUG }}",push-by-digest=true,name-canonical=true,push=${{ startsWith(github.ref, 'refs/heads/') }}
-            *.cache-from=type=gha,scope=${{ env.CACHE_GHA_SCOPE }}-${{ matrix.target }}
-            *.cache-from=type=gha,scope=${{ env.CACHE_GHA_SCOPE_CROSS }}-${{ matrix.target }}-${{ env.PLATFORM_PAIR }}
-            *.cache-to=type=gha,scope=${{ env.CACHE_GHA_SCOPE_CROSS }}-${{ matrix.target }}-${{ env.PLATFORM_PAIR }}
-      -
-        name: Export digest
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const fs = require('fs');
-            const path = require('path');
-            const digestsDir = '${{ runner.temp }}/digests';
-            if (!fs.existsSync(digestsDir)) {
-              fs.mkdirSync(digestsDir, { recursive: true });
-            }
-            const metadata = JSON.parse(process.env.BAKE_METADATA);
-            const digest = metadata[`${{ matrix.target }}-all`]['containerimage.digest'];
-            const digestFile = path.join(digestsDir, digest.replace('sha256:', ''));
-            fs.closeSync(fs.openSync(digestFile, 'w'));
-        env:
-          BAKE_METADATA: ${{ steps.bake.outputs.metadata }}
-      -
-        name: Upload digest
-        uses: actions/upload-artifact@v4
-        with:
-          name: digests-${{ matrix.target }}-${{ env.PLATFORM_PAIR }}
-          path: ${{ runner.temp }}/digests/*
-          if-no-files-found: error
-          retention-days: 1
-
-  merge:
-    runs-on: ubuntu-24.04
-    if: startsWith(github.ref, 'refs/heads/')
-    needs:
-      - build
-    strategy:
-      fail-fast: false
-      matrix:
-        target:
-          - mainline
-          - buildkit
-          - desktop
-    steps:
-      -
-        name: Download meta bake definition
-        uses: actions/download-artifact@v5
-        with:
-          name: bake-meta-${{ matrix.target }}
-          path: ${{ runner.temp }}
-      -
-        name: Download digests
-        uses: actions/download-artifact@v5
-        with:
-          path: ${{ runner.temp }}/digests
-          pattern: digests-${{ matrix.target }}-*
-          merge-multiple: true
-      -
-        name: Login to DockerHub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERIO_USERNAME }}
-          password: ${{ secrets.DOCKERIO_PASSWORD }}
-      -
-        name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      -
-        name: Create manifest list and push
-        working-directory: ${{ runner.temp }}/digests
-        run: |
-          docker buildx imagetools create $(jq -cr '.target."meta-helper".tags | map(select(startswith("${{ env.REPO_SLUG }}")) | "-t " + .) | join(" ")' ${{ runner.temp }}/bake-meta.json) \
-            $(printf '${{ env.REPO_SLUG }}@sha256:%s ' *)
-      -
-        name: Inspect image
-        run: |
-          docker buildx imagetools inspect ${{ env.REPO_SLUG }}:$(jq -r '.target."meta-helper".args.DOCKER_META_VERSION' ${{ runner.temp }}/bake-meta.json)
+    with:
+      target: ${{ matrix.target }}
+      dry-run: ${{ github.event_name == 'pull_request' }}
