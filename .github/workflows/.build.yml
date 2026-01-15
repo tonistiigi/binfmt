@@ -164,7 +164,7 @@ jobs:
     steps:
       -
         name: Download artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           path: /tmp/buildx-output
           pattern: ${{ needs.qemu-archive.outputs.artifact-name }}*
@@ -219,7 +219,7 @@ jobs:
     steps:
       -
         name: Download artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           path: /tmp/buildx-output
           pattern: ${{ needs.binfmt-archive.outputs.artifact-name }}*
@@ -265,7 +265,7 @@ jobs:
       -
         name: Download archives releases
         if: inputs.target == 'mainline'
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           pattern: release-*
           merge-multiple: true
