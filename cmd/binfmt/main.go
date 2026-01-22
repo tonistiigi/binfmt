@@ -26,7 +26,7 @@ var (
 
 func init() {
 	flag.StringVar(&mount, "mount", "/proc/sys/fs/binfmt_misc", "binfmt_misc mount point")
-	flag.StringVar(&toInstall, "install", "", "architectures to install")
+	flag.StringVar(&toInstall, "install", "", `architectures to install or exclude (prefix with "-" to exclude)`)
 	flag.StringVar(&toUninstall, "uninstall", "", "architectures to uninstall")
 	flag.BoolVar(&flVersion, "version", false, "display version")
 
@@ -152,19 +152,24 @@ func formatPlatforms(p []ocispecs.Platform) []string {
 	return str
 }
 
-func parseArch(in string) (out []string) {
+func parseInstall(in string) (out []string) {
 	if in == "" {
 		return
 	}
+	archList := newList()
 	for _, v := range strings.Split(in, ",") {
-		p, err := platforms.Parse(v)
-		if err != nil {
-			out = append(out, v)
-		} else {
-			out = append(out, p.Architecture)
+		if v == "" {
+			continue
+		}
+		if v[0] == '-' {
+			archList.exclude(v[1:])
+			continue
+		}
+		if v == "all" {
+			archList.add(allArch()...)
 		}
 	}
-	return
+	return archList.items
 }
 
 func parseUninstall(in string) (out []string) {
@@ -218,14 +223,7 @@ func run() error {
 		}
 	}
 
-	var installArchs []string
-	if toInstall == "all" {
-		installArchs = allArch()
-	} else {
-		installArchs = parseArch(toInstall)
-	}
-
-	for _, name := range installArchs {
+	for _, name := range parseInstall(toInstall) {
 		err := install(name)
 		if err == nil {
 			log.Printf("installing: %s OK", name)
