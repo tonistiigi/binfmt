@@ -104,7 +104,7 @@ jobs:
             core.setOutput('git_tag', gitTag);
 
   image:
-    uses: docker/github-builder-experimental/.github/workflows/bake.yml@478a43dbc00a94706d6f106551b49c665c99b64c
+    uses: docker/github-builder-experimental/.github/workflows/bake.yml@7256a7a404fc511cf9e7b699a9d9d5ec76e8639e
     needs:
       - prepare-build
     permissions:
@@ -116,9 +116,9 @@ jobs:
       target: ${{ inputs.target }}-all
       output: image
       push: ${{ ! inputs.dry-run }}
-      set: |
-        *.args.QEMU_REPO=${{ needs.prepare-build.outputs.qemu_repo }}
-        *.args.QEMU_VERSION=${{ needs.prepare-build.outputs.qemu_version }}
+      vars: |
+        QEMU_REPO=${{ needs.prepare-build.outputs.qemu_repo }}
+        QEMU_VERSION=${{ needs.prepare-build.outputs.qemu_version }}
       set-meta-annotations: true
       meta-images: |
         ${{ needs.prepare-build.outputs.image_name }}
@@ -142,9 +142,10 @@ jobs:
         - registry: docker.io
           username: ${{ secrets.DOCKERIO_USERNAME }}
           password: ${{ secrets.DOCKERIO_PASSWORD }}
+          scope: ${{ needs.prepare-build.outputs.image_name }}@push
 
   qemu-archive:
-    uses: docker/github-builder-experimental/.github/workflows/bake.yml@478a43dbc00a94706d6f106551b49c665c99b64c
+    uses: docker/github-builder-experimental/.github/workflows/bake.yml@7256a7a404fc511cf9e7b699a9d9d5ec76e8639e
     if: inputs.target == 'mainline'
     permissions:
       contents: read # same as global permission
@@ -199,7 +200,7 @@ jobs:
           if-no-files-found: error
 
   binfmt-archive:
-    uses: docker/github-builder-experimental/.github/workflows/bake.yml@478a43dbc00a94706d6f106551b49c665c99b64c
+    uses: docker/github-builder-experimental/.github/workflows/bake.yml@7256a7a404fc511cf9e7b699a9d9d5ec76e8639e
     if: inputs.target == 'mainline'
     permissions:
       contents: read # same as global permission
