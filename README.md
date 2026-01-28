@@ -54,6 +54,12 @@ docker run --privileged --rm tonistiigi/binfmt --install all
 docker run --privileged --rm tonistiigi/binfmt --install arm64,riscv64,arm
 ```
 
+If using Amazon Linux 2023, to ensure the executable types are registered on the host OS, run the following command before the install command above:
+
+```bash
+ls /proc/sys/fs/binfmt_misc
+```
+
 ## Installing emulators from Docker-Compose
 
 ```docker
