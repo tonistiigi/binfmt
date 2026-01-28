@@ -193,7 +193,7 @@ jobs:
           tree -nh .
       -
         name: Upload qemu archives release
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: release-qemu
           path: /tmp/qemu-artifacts/*
@@ -248,7 +248,7 @@ jobs:
           tree -nh .
       -
         name: Upload binfmt archives release
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: release-binfmt
           path: /tmp/binfmt-artifacts/*
