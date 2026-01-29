@@ -104,7 +104,7 @@ jobs:
             core.setOutput('git_tag', gitTag);
 
   image:
-    uses: docker/github-builder-experimental/.github/workflows/bake.yml@0bf2b16e15ef4215434f24e5443e8ce96a129cff
+    uses: docker/github-builder/.github/workflows/bake.yml@v1
     needs:
       - prepare-build
     permissions:
@@ -145,7 +145,7 @@ jobs:
           scope: ${{ needs.prepare-build.outputs.image_name }}@push
 
   qemu-archive:
-    uses: docker/github-builder-experimental/.github/workflows/bake.yml@0bf2b16e15ef4215434f24e5443e8ce96a129cff
+    uses: docker/github-builder/.github/workflows/bake.yml@v1
     if: inputs.target == 'mainline'
     permissions:
       contents: read # same as global permission
@@ -200,7 +200,7 @@ jobs:
           if-no-files-found: error
 
   binfmt-archive:
-    uses: docker/github-builder-experimental/.github/workflows/bake.yml@0bf2b16e15ef4215434f24e5443e8ce96a129cff
+    uses: docker/github-builder/.github/workflows/bake.yml@v1
     if: inputs.target == 'mainline'
     permissions:
       contents: read # same as global permission
