@@ -134,12 +134,14 @@ jobs:
           docker buildx build --platform=linux/amd64,linux/arm64,linux/386,linux/arm,linux/ppc64le,linux/s390x --target=run --allow security.insecure --build-arg CONFIG_RT_GROUP_SCHED=false ./test
 
   e2e:
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.os }}
     needs:
       - prepare
     strategy:
       fail-fast: false
       matrix:
+        os:
+          - ubuntu-24.04
         target:
           - mainline
           - desktop
@@ -149,14 +151,25 @@ jobs:
         platform:
           - linux/arm/v7
         include:
-          - target: mainline
+          - os: ubuntu-24.04
+            target: mainline
             dockerfile: libc-bin
             platform: linux/arm64
-          - target: desktop
+          - os: ubuntu-24.04
+            target: mainline
+            dockerfile: npm-version
+            platform: linux/arm64
+          - os: ubuntu-22.04
+            target: mainline
+            dockerfile: npm-version
+            platform: linux/arm64
+          - os: ubuntu-24.04
+            target: desktop
             dockerfile: tini
             platform: linux/arm64
             run_args: --rm
-          - target: desktop
+          - os: ubuntu-24.04
+            target: desktop
             dockerfile: postgis
             platform: linux/arm64
             run_args: -d --name postgis
