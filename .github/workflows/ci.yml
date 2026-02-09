@@ -45,17 +45,43 @@ jobs:
           CACHE_FROM: type=gha,scope=${{ env.CACHE_GHA_SCOPE }}-${{ matrix.target }}
           CACHE_TO: type=gha,scope=${{ env.CACHE_GHA_SCOPE }}-${{ matrix.target }}
 
+  prepare-validate:
+    runs-on: ubuntu-24.04
+    outputs:
+      includes: ${{ steps.generate.outputs.matrix }}
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v6
+      -
+        name: Generate matrix
+        id: generate
+        uses: docker/bake-action/subaction/matrix@v6
+        with:
+          target: validate
+
   validate:
     runs-on: ubuntu-24.04
     needs:
-      - prepare
+      - prepare-validate
     strategy:
       fail-fast: false
       matrix:
-        script:
-          - ./hack/lint
-          - ./hack/validate-vendor
-          - ./hack/install-and-test
+        include: ${{ fromJson(needs.prepare-validate.outputs.includes) }}
+    steps:
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      -
+        name: Validate
+        uses: docker/bake-action@v6
+        with:
+          targets: ${{ matrix.target }}
+
+  install-and-test:
+    runs-on: ubuntu-24.04
+    needs:
+      - prepare
     steps:
       -
         name: Checkout
@@ -69,7 +95,7 @@ jobs:
       -
         name: Run
         run: |
-          ${{ matrix.script }}
+          ./hack/install-and-test
         env:
           CACHE_FROM: type=gha,scope=${{ env.CACHE_GHA_SCOPE }}-mainline
 
@@ -220,6 +246,7 @@ jobs:
     secrets: inherit
     needs:
       - validate
+      - install-and-test
       - test
       - e2e
     strategy:
