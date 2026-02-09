@@ -129,3 +129,27 @@ target "archive" {
 target "archive-all" {
   inherits = ["archive", "all-arch"]
 }
+
+group "validate" {
+  targets = ["lint", "validate-vendor"]
+}
+
+target "lint" {
+  inherits = ["_common"]
+  dockerfile = "./hack/dockerfiles/lint.Dockerfile"
+  output = ["type=cacheonly"]
+}
+
+target "validate-vendor" {
+  inherits = ["_common"]
+  dockerfile = "./hack/dockerfiles/vendor.Dockerfile"
+  target = "validate"
+  output = ["type=cacheonly"]
+}
+
+target "vendor" {
+  inherits = ["_common"]
+  dockerfile = "./hack/dockerfiles/vendor.Dockerfile"
+  target = "update"
+  output = ["."]
+}

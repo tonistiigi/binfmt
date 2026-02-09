@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 
-ARG GO_VERSION=1.23
-ARG ALPINE_VERSION=3.22
-ARG XX_VERSION=1.7.0
+ARG GO_VERSION=1.25
+ARG ALPINE_VERSION=3.23
+ARG XX_VERSION=1.9.0
 
 ARG QEMU_VERSION=HEAD
 ARG QEMU_REPO=https://github.com/qemu/qemu
@@ -139,26 +139,21 @@ RUN apk add --no-cache bash
 ARG BUILDARCH
 RUN <<eof
   bash -euo pipefail -c '
-    if [ "$BUILDARCH" == "amd64" ]; then
-      echo "aarch64" > /etc/apk/arch
-    else
-      echo "x86_64" > /etc/apk/arch
-    fi
-    '
-eof
-RUN apk add --allow-untrusted --no-cache busybox-static
-
-# Recreate all the symlinks for commands handled by the busybox multi-call binary such that they will use
-# the cross-arch binary, and work under emulation
-RUN <<eof
-  bash -euo pipefail -c '
-    mkdir -p /crossarch/bin /crossarch/usr/bin
-    mv /bin/busybox.static /crossarch/bin/
+    crossarch=$([ "$BUILDARCH" == "amd64" ] && echo "aarch64" || echo "x86_64")
+    apkroot=/tmp/crossarch-apk-root
+    target=/crossarch
+    mkdir -p $apkroot/etc/apk
+    cp /etc/apk/repositories $apkroot/etc/apk/
+    apk add --root $apkroot --arch $crossarch --initdb --allow-untrusted --no-cache busybox-static
+    mkdir -p $target/bin $target/usr/bin
+    mv $apkroot/bin/busybox.static $target/bin/
+    # Recreate all the symlinks for commands handled by the busybox multi-call binary such that they will use
+    # the cross-arch binary, and work under emulation
     for i in $(echo /bin/*; echo /usr/bin/*); do
      if [[ $(readlink -f "$i") != *busybox* ]]; then
        continue
      fi
-     ln -s /crossarch/bin/busybox.static /crossarch$i
+     ln -s $target/bin/busybox.static $target$i
     done'
 eof
 
