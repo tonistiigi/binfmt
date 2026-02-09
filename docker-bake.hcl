@@ -129,3 +129,13 @@ target "archive" {
 target "archive-all" {
   inherits = ["archive", "all-arch"]
 }
+
+group "validate" {
+  targets = ["lint"]
+}
+
+target "lint" {
+  inherits = ["_common"]
+  dockerfile = "./hack/dockerfiles/lint.Dockerfile"
+  output = ["type=cacheonly"]
+}
