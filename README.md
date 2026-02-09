@@ -54,7 +54,7 @@ docker run --privileged --rm tonistiigi/binfmt --install all
 docker run --privileged --rm tonistiigi/binfmt --install arm64,riscv64,arm
 ```
 
-If using Amazon Linux 2023, to ensure the executable types are registered on the host OS, run the following command before the install command above:
+If using Amazon Linux 2023, to ensure the executable types are registered on the host OS, run the following command before the install command above, solves [this](https://github.com/tonistiigi/binfmt/issues/288) issue:
 
 ```bash
 ls /proc/sys/fs/binfmt_misc
