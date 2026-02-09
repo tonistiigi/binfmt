@@ -1,6 +1,6 @@
 module github.com/tonistiigi/binfmt
 
-go 1.23.0
+go 1.25.0
 
 require (
 	github.com/containerd/platforms v1.0.0-rc.1
