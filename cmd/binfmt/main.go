@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/containerd/platforms"
 	"github.com/moby/buildkit/util/archutil"
@@ -223,6 +224,14 @@ func run() error {
 		installArchs = allArch()
 	} else {
 		installArchs = parseArch(toInstall)
+	}
+
+	// best effort workaround for kernels that do not immediately expose new
+	// binfmt_misc entries after register writes until the mountpoint is touched:
+	// https://github.com/amazonlinux/amazon-linux-2023/issues/479#issuecomment-2707623971
+	if len(installArchs) > 0 {
+		now := time.Now()
+		_ = os.Chtimes(mount, now, now)
 	}
 
 	for _, name := range installArchs {
