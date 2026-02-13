@@ -1,0 +1,21 @@
+# a comma-separated list of architecture formats to enable or "all"
+# see https://github.com/tonistiigi/binfmt for details
+formats: "all"
+
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+
+resources:
+  limits:
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
