@@ -75,26 +75,19 @@ jobs:
                 throw new Error(res.stderr);
               }
               const dt = JSON.parse(res.stdout.trim());
-              qemuRepo = dt.target[inpTarget].args.QEMU_REPO;
-              qemuRef = dt.target[inpTarget].args.QEMU_REF;
-              qemuVersion = dt.target[inpTarget].args.QEMU_VERSION;
-              if (inpQemuRepo !== '') {
-                qemuRepo = inpQemuRepo;
-              }
-              if (inpQemuRef !== '') {
-                qemuVersion = inpQemuRef;
-                qemuRef = inpQemuRef;
-              }
+              qemuRepo = inpQemuRepo ? inpQemuRepo : dt.target[inpTarget].args.QEMU_REPO;
+              qemuVersion = inpQemuVersion ? inpQemuVersion : dt.target[inpTarget].args.QEMU_VERSION;
+              qemuRef = inpQemuRef ? inpQemuRef : qemuVersion;
             });
             
             let tagPrefix = '';
             let gitTag = '';
             if (inpTarget === 'mainline') {
               tagPrefix = 'qemu-';
-              gitTag = `deploy/${inpQemuVersion}-${inpGitHubRunNumber}`;
+              gitTag = `deploy/${qemuVersion}-${inpGitHubRunNumber}`;
             } else {
               tagPrefix = `${inpTarget}-`;
-              gitTag = `${inpTarget}/${inpQemuVersion}-${inpGitHubRunNumber}`;
+              gitTag = `${inpTarget}/${qemuVersion}-${inpGitHubRunNumber}`;
             }
             
             core.setOutput('qemu_repo', qemuRepo);
@@ -102,6 +95,11 @@ jobs:
             core.setOutput('qemu_version', qemuVersion);
             core.setOutput('tag_prefix', tagPrefix);
             core.setOutput('git_tag', gitTag);
+            core.info(`qemu_repo: ${qemuRepo}`);
+            core.info(`qemu_ref: ${qemuRef}`);
+            core.info(`qemu_version: ${qemuVersion}`);
+            core.info(`tag_prefix: ${tagPrefix}`);
+            core.info(`git_tag: ${gitTag}`);
 
   image:
     uses: docker/github-builder/.github/workflows/bake.yml@v1
@@ -118,7 +116,7 @@ jobs:
       push: ${{ ! inputs.dry-run }}
       vars: |
         QEMU_REPO=${{ needs.prepare-build.outputs.qemu_repo }}
-        QEMU_VERSION=${{ needs.prepare-build.outputs.qemu_version }}
+        QEMU_VERSION=${{ needs.prepare-build.outputs.qemu_ref }}
       set-meta-annotations: true
       meta-images: |
         ${{ needs.prepare-build.outputs.image_name }}
