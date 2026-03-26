@@ -5,14 +5,14 @@
 Package attribute provide several helper functions for some commonly used
 logic of processing attributes.
 */
-package attribute // import "go.opentelemetry.io/otel/internal/attribute"
+package attribute // import "go.opentelemetry.io/otel/attribute/internal"
 
 import (
 	"reflect"
 )
 
 // BoolSliceValue converts a bool slice into an array with same elements as slice.
-func BoolSliceValue(v []bool) interface{} {
+func BoolSliceValue(v []bool) any {
 	var zero bool
 	cp := reflect.New(reflect.ArrayOf(len(v), reflect.TypeOf(zero))).Elem()
 	reflect.Copy(cp, reflect.ValueOf(v))
@@ -20,7 +20,7 @@ func BoolSliceValue(v []bool) interface{} {
 }
 
 // Int64SliceValue converts an int64 slice into an array with same elements as slice.
-func Int64SliceValue(v []int64) interface{} {
+func Int64SliceValue(v []int64) any {
 	var zero int64
 	cp := reflect.New(reflect.ArrayOf(len(v), reflect.TypeOf(zero))).Elem()
 	reflect.Copy(cp, reflect.ValueOf(v))
@@ -28,7 +28,7 @@ func Int64SliceValue(v []int64) interface{} {
 }
 
 // Float64SliceValue converts a float64 slice into an array with same elements as slice.
-func Float64SliceValue(v []float64) interface{} {
+func Float64SliceValue(v []float64) any {
 	var zero float64
 	cp := reflect.New(reflect.ArrayOf(len(v), reflect.TypeOf(zero))).Elem()
 	reflect.Copy(cp, reflect.ValueOf(v))
@@ -36,7 +36,7 @@ func Float64SliceValue(v []float64) interface{} {
 }
 
 // StringSliceValue converts a string slice into an array with same elements as slice.
-func StringSliceValue(v []string) interface{} {
+func StringSliceValue(v []string) any {
 	var zero string
 	cp := reflect.New(reflect.ArrayOf(len(v), reflect.TypeOf(zero))).Elem()
 	reflect.Copy(cp, reflect.ValueOf(v))
@@ -44,57 +44,53 @@ func StringSliceValue(v []string) interface{} {
 }
 
 // AsBoolSlice converts a bool array into a slice into with same elements as array.
-func AsBoolSlice(v interface{}) []bool {
+func AsBoolSlice(v any) []bool {
 	rv := reflect.ValueOf(v)
 	if rv.Type().Kind() != reflect.Array {
 		return nil
 	}
-	var zero bool
-	correctLen := rv.Len()
-	correctType := reflect.ArrayOf(correctLen, reflect.TypeOf(zero))
-	cpy := reflect.New(correctType)
-	_ = reflect.Copy(cpy.Elem(), rv)
-	return cpy.Elem().Slice(0, correctLen).Interface().([]bool)
+	cpy := make([]bool, rv.Len())
+	if len(cpy) > 0 {
+		_ = reflect.Copy(reflect.ValueOf(cpy), rv)
+	}
+	return cpy
 }
 
 // AsInt64Slice converts an int64 array into a slice into with same elements as array.
-func AsInt64Slice(v interface{}) []int64 {
+func AsInt64Slice(v any) []int64 {
 	rv := reflect.ValueOf(v)
 	if rv.Type().Kind() != reflect.Array {
 		return nil
 	}
-	var zero int64
-	correctLen := rv.Len()
-	correctType := reflect.ArrayOf(correctLen, reflect.TypeOf(zero))
-	cpy := reflect.New(correctType)
-	_ = reflect.Copy(cpy.Elem(), rv)
-	return cpy.Elem().Slice(0, correctLen).Interface().([]int64)
+	cpy := make([]int64, rv.Len())
+	if len(cpy) > 0 {
+		_ = reflect.Copy(reflect.ValueOf(cpy), rv)
+	}
+	return cpy
 }
 
 // AsFloat64Slice converts a float64 array into a slice into with same elements as array.
-func AsFloat64Slice(v interface{}) []float64 {
+func AsFloat64Slice(v any) []float64 {
 	rv := reflect.ValueOf(v)
 	if rv.Type().Kind() != reflect.Array {
 		return nil
 	}
-	var zero float64
-	correctLen := rv.Len()
-	correctType := reflect.ArrayOf(correctLen, reflect.TypeOf(zero))
-	cpy := reflect.New(correctType)
-	_ = reflect.Copy(cpy.Elem(), rv)
-	return cpy.Elem().Slice(0, correctLen).Interface().([]float64)
+	cpy := make([]float64, rv.Len())
+	if len(cpy) > 0 {
+		_ = reflect.Copy(reflect.ValueOf(cpy), rv)
+	}
+	return cpy
 }
 
 // AsStringSlice converts a string array into a slice into with same elements as array.
-func AsStringSlice(v interface{}) []string {
+func AsStringSlice(v any) []string {
 	rv := reflect.ValueOf(v)
 	if rv.Type().Kind() != reflect.Array {
 		return nil
 	}
-	var zero string
-	correctLen := rv.Len()
-	correctType := reflect.ArrayOf(correctLen, reflect.TypeOf(zero))
-	cpy := reflect.New(correctType)
-	_ = reflect.Copy(cpy.Elem(), rv)
-	return cpy.Elem().Slice(0, correctLen).Interface().([]string)
+	cpy := make([]string, rv.Len())
+	if len(cpy) > 0 {
+		_ = reflect.Copy(reflect.ValueOf(cpy), rv)
+	}
+	return cpy
 }
