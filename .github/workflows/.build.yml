@@ -49,7 +49,7 @@ jobs:
       -
         name: Set outputs
         id: set
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           INPUT_GITHUB-RUN-NUMBER: ${{ github.run_number }}
           INPUT_TARGET: ${{ inputs.target }}
@@ -280,7 +280,7 @@ jobs:
       -
         name: Prepare
         id: prepare
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           INPUT_META-JSON: ${{ needs.image.outputs.meta-json }}
         with:
