@@ -1,0 +1,6 @@
+rules:
+  # This rule does not model reusable workflows correctly. Their effective
+  # permissions are determined by the caller and can only be downgraded.
+  excessive-permissions:
+    ignore:
+      - .build.yml
