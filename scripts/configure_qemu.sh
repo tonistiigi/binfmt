@@ -33,6 +33,9 @@ if [ -z "$QEMU_TARGETS" ]; then
       if [ "$arch" != "ppc64le" ]; then
         QEMU_TARGETS="$QEMU_TARGETS ppc64le-linux-user"
       fi
+      if [ "$arch" != "ppc64" ]; then
+        QEMU_TARGETS="$QEMU_TARGETS ppc64-linux-user"
+      fi
       if [ "$arch" != "s390x" ]; then
         QEMU_TARGETS="$QEMU_TARGETS s390x-linux-user"
       fi
