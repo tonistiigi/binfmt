@@ -1,5 +1,12 @@
 name: release
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 on:
   workflow_dispatch:
     inputs:
@@ -38,7 +45,9 @@ on:
 jobs:
   release:
     uses: ./.github/workflows/.build.yml
-    secrets: inherit
+    permissions:
+      contents: write # to create GitHub release
+      id-token: write # to create OIDC token for signing
     with:
       target: ${{ inputs.target }}
       release: true
@@ -47,3 +56,6 @@ jobs:
       qemu_version: ${{ inputs.qemu_version }}
       latest: ${{ inputs.latest }}
       dry-run: ${{ inputs.dry-run }}
+    secrets:
+      DOCKERIO_USERNAME: ${{ secrets.DOCKERIO_USERNAME }}
+      DOCKERIO_PASSWORD: ${{ secrets.DOCKERIO_PASSWORD }}

@@ -28,6 +28,11 @@ on:
         type: boolean
         required: false
         default: true
+    secrets:
+      DOCKERIO_USERNAME:
+        required: false
+      DOCKERIO_PASSWORD:
+        required: false
 
 env:
   REPO_SLUG: tonistiigi/binfmt
@@ -35,6 +40,8 @@ env:
 jobs:
   prepare-build:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read # to checkout the repo
     outputs:
       image_name: ${{ env.REPO_SLUG }}
       qemu_repo: ${{ steps.set.outputs.qemu_repo }}
@@ -45,11 +52,11 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       -
         name: Set outputs
         id: set
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         env:
           INPUT_GITHUB-RUN-NUMBER: ${{ github.run_number }}
           INPUT_TARGET: ${{ inputs.target }}
@@ -104,11 +111,11 @@ jobs:
             core.setOutput('git_tag', gitTag);
 
   image:
-    uses: docker/github-builder/.github/workflows/bake.yml@v1
+    uses: docker/github-builder/.github/workflows/bake.yml@7d2a02426d4b989616ba5aaee4e879afd4134b0d # v1.6.0
     needs:
       - prepare-build
     permissions:
-      contents: read # same as global permission
+      contents: read # to checkout the repo
       id-token: write # for signing attestation(s) with GitHub OIDC Token
     with:
       distribute: ${{ github.event_name == 'pull_request' }}
@@ -145,10 +152,10 @@ jobs:
           scope: ${{ needs.prepare-build.outputs.image_name }}@push
 
   qemu-archive:
-    uses: docker/github-builder/.github/workflows/bake.yml@v1
+    uses: docker/github-builder/.github/workflows/bake.yml@7d2a02426d4b989616ba5aaee4e879afd4134b0d # v1.6.0
     if: inputs.target == 'mainline'
     permissions:
-      contents: read # same as global permission
+      contents: read # to checkout the repo
       id-token: write # for signing attestation(s) with GitHub OIDC Token
     with:
       setup-qemu: true
@@ -160,12 +167,14 @@ jobs:
 
   qemu-archive-finalize:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read # maximum permission
     needs:
       - qemu-archive
     steps:
       -
         name: Download artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           path: /tmp/buildx-output
           pattern: ${{ needs.qemu-archive.outputs.artifact-name }}*
@@ -193,17 +202,17 @@ jobs:
           tree -nh .
       -
         name: Upload qemu archives release
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: release-qemu
           path: /tmp/qemu-artifacts/*
           if-no-files-found: error
 
   binfmt-archive:
-    uses: docker/github-builder/.github/workflows/bake.yml@v1
+    uses: docker/github-builder/.github/workflows/bake.yml@7d2a02426d4b989616ba5aaee4e879afd4134b0d # v1.6.0
     if: inputs.target == 'mainline'
     permissions:
-      contents: read # same as global permission
+      contents: read # to checkout the repo
       id-token: write # for signing attestation(s) with GitHub OIDC Token
     with:
       setup-qemu: true
@@ -217,10 +226,12 @@ jobs:
     runs-on: ubuntu-24.04
     needs:
       - binfmt-archive
+    permissions:
+      contents: read # maximum permission
     steps:
       -
         name: Download artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           path: /tmp/buildx-output
           pattern: ${{ needs.binfmt-archive.outputs.artifact-name }}*
@@ -248,7 +259,7 @@ jobs:
           tree -nh .
       -
         name: Upload binfmt archives release
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: release-binfmt
           path: /tmp/binfmt-artifacts/*
@@ -266,7 +277,7 @@ jobs:
       -
         name: Download archives releases
         if: inputs.target == 'mainline'
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           pattern: release-*
           merge-multiple: true
@@ -280,7 +291,7 @@ jobs:
       -
         name: Prepare
         id: prepare
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         env:
           INPUT_META-JSON: ${{ needs.image.outputs.meta-json }}
         with:
@@ -308,4 +319,4 @@ jobs:
             * logs: ${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}
             * qemu repo: ${{ needs.prepare-build.outputs.qemu_repo }}/tree/${{ needs.prepare-build.outputs.qemu_ref }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
