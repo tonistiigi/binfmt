@@ -267,7 +267,7 @@ jobs:
 
   release:
     runs-on: ubuntu-24.04
-    if: always()
+    if: ${{ always() && needs.image.result == 'success' && (inputs.target != 'mainline' || (needs.qemu-archive-finalize.result == 'success' && needs.binfmt-archive-finalize.result == 'success')) }}
     needs:
       - prepare-build
       - image
