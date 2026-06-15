@@ -238,7 +238,7 @@ jobs:
       -
         name: Check container logs
         if: ${{ matrix.logs_ctn_name != '' && matrix.logs_check != '' }}
-        uses: crazy-max/.github/.github/actions/container-logs-check@9ba6e6f9450baf3b1237f8035c1fdc45932510bd # v1.8.0
+        uses: crazy-max/.github/.github/actions/container-logs-check@46267a6e61cd56aac2fc79943df180152f4c89d6 # v1.10.1
         with:
           container_name: ${{ matrix.logs_ctn_name }}
           log_check: ${{ matrix.logs_check }}
