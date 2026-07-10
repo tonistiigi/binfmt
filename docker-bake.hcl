@@ -5,7 +5,7 @@ variable "QEMU_REPO" {
   default = "https://github.com/qemu/qemu"
 }
 variable "QEMU_VERSION" {
-  default = "v10.2.3"
+  default = "v11.0.2"
 }
 variable "QEMU_PATCHES" {
   default = "cpu-max-arm"
@@ -27,15 +27,13 @@ group "default" {
 }
 
 target "all-arch" {
+  // Since QEMU 11.0, linux-user emulator support for 32-bit host systems has been dropped
   platforms = [
     "linux/amd64",
     "linux/arm64",
-    "linux/arm/v6",
-    "linux/arm/v7",
     "linux/ppc64le",
     "linux/s390x",
     "linux/riscv64",
-    "linux/386",
   ]
 }
 
@@ -70,7 +68,7 @@ target "buildkit" {
   inherits = ["mainline"]
   args = {
     BINARY_PREFIX = "buildkit-"
-    QEMU_PATCHES = "${QEMU_PATCHES},buildkit-direct-execve-v10.2"
+    QEMU_PATCHES = "${QEMU_PATCHES},buildkit-direct-execve-v11.0"
     QEMU_PRESERVE_ARGV0 = ""
   }
   cache-from = ["${REPO_SLUG}:buildkit-master"]
