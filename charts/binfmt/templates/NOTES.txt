@@ -1,0 +1,8 @@
+This chart should be uninstalled as soon as successful deployment has been confirmed.
+
+The following commands do just that in `bash` (adapt as needed):
+
+until [[ "$(helm list --deployed -n {{ .Release.Namespace }} -qf {{ .Release.Name }})" = {{ .Release.Name }} ]]
+do sleep .5
+done
+helm uninstall --namespace {{ .Release.Namespace }} {{ .Release.Name }}
